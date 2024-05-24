@@ -5,3 +5,4 @@ numpy
 tensorboard
 requests
 einops
+pyyaml

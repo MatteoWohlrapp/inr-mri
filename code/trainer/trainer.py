@@ -7,28 +7,52 @@ from tqdm import tqdm
 from utils.visualization import show_batch, show_image
 import sys
 
+
 def create_tqdm_bar(iterable, desc):
-    return tqdm(enumerate(iterable),total=len(iterable), ncols=150, desc=desc, file=sys.stdout)
+    return tqdm(
+        enumerate(iterable), total=len(iterable), ncols=150, desc=desc, file=sys.stdout
+    )
+
 
 class Trainer:
-    def __init__(self, model, device, train_dataset, val_dataset = None, lr=1e-4, batch_size=1, output_name = "output"):
+    def __init__(
+        self,
+        model,
+        device,
+        train_dataset,
+        optimizer,
+        val_dataset=None,
+        lr=1e-4,
+        batch_size=1,
+        output_name="output",
+        scheduler=None,
+    ):
         self.model = model.to(device)
         self.device = device
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
-        self.train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        self.train_loader = DataLoader(
+            train_dataset, batch_size=batch_size, shuffle=True
+        )
         if val_dataset:
-            self.val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
+            self.val_loader = DataLoader(
+                val_dataset, batch_size=batch_size, shuffle=True
+            )
         self.criterion = nn.MSELoss()
-        self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
-        self.writer = SummaryWriter(log_dir=f"../output/runs/{datetime.now().strftime('%Y%m%d-%H%M%S')}")
+        self.optimizer = optimizer
+        self.scheduler = scheduler
+        self.writer = SummaryWriter(
+            log_dir=f"../output/runs/{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+        )
         self.output_name = output_name
 
     def train(self, num_epochs):
         validation_loss = 0
         for epoch in range(num_epochs):
             self.model.train()
-            training_loop = create_tqdm_bar(self.train_loader, desc=f'Training Epoch [{epoch}/{num_epochs}]')
+            training_loop = create_tqdm_bar(
+                self.train_loader, desc=f"Training Epoch [{epoch}/{num_epochs}]"
+            )
             training_loss = 0
             for train_iteration, img_batch in training_loop:
                 img_batch = img_batch.to(self.device)
@@ -41,16 +65,25 @@ class Trainer:
                 training_loss += loss.item()
 
                 # Update the progress bar.
-                training_loop.set_postfix(train_loss = "{:.8f}".format(training_loss / (train_iteration + 1)), val_loss = "{:.8f}".format(validation_loss))
+                training_loop.set_postfix(
+                    train_loss="{:.8f}".format(training_loss / (train_iteration + 1)),
+                    val_loss="{:.8f}".format(validation_loss),
+                )
                 training_loop.refresh()
 
                 # Update the tensorboard logger.
-                self.writer.add_scalar('Training Loss', loss.item(), epoch * len(self.train_loader) + train_iteration)
+                self.writer.add_scalar(
+                    "Training Loss",
+                    loss.item(),
+                    epoch * len(self.train_loader) + train_iteration,
+                )
 
             # Validation
             if self.val_dataset is not None:
                 self.model.eval()
-                val_loop = create_tqdm_bar(self.val_loader, desc=f'Validation Epoch [{epoch}/{num_epochs}]')
+                val_loop = create_tqdm_bar(
+                    self.val_loader, desc=f"Validation Epoch [{epoch}/{num_epochs}]"
+                )
                 validation_loss = 0
                 with torch.no_grad():
                     for val_iteration, img_batch in val_loop:
@@ -60,13 +93,26 @@ class Trainer:
                         validation_loss += loss.item()
 
                         # Update the progress bar.
-                        val_loop.set_postfix(val_loss = "{:.8f}".format(validation_loss / (val_iteration + 1)))
+                        val_loop.set_postfix(
+                            val_loss="{:.8f}".format(
+                                validation_loss / (val_iteration + 1)
+                            )
+                        )
                         val_loop.refresh()
 
                         # Update the tensorboard logger.
-                        self.writer.add_scalar(f'Validation Loss', validation_loss / (val_iteration + 1), epoch * len(self.val_loader) + val_iteration)
-        
+                        self.writer.add_scalar(
+                            f"Validation Loss",
+                            validation_loss / (val_iteration + 1),
+                            epoch * len(self.val_loader) + val_iteration,
+                        )
+            if self.scheduler:
+                self.scheduler.step()
+
         self.writer.close()
 
         with torch.no_grad():
-            torch.save(self.model.state_dict(), f"{self.output_name}_model.pth")
+            torch.save(
+                self.model.state_dict(),
+                f"../output/model_checkpoints/{self.output_name}_model.pth",
+            )

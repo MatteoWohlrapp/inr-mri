@@ -1,30 +1,29 @@
-# Configuration for MRIDataset
-mri_path: "/path/to/mri/dataset"
-mri_transform: ["transform1", "transform2"]
-mri_undersampled: true
-mri_num_samples: 500
+# Set the mode and name 
+mode: "train"
+name: "modulated_siren"
 
-# Configuration for SirenNet
-siren_dim_in: 2
-siren_dim_hidden: 256
-siren_dim_out: 3
-siren_num_layers: 5
-siren_w0: 1.0
-siren_w0_initial: 30.0
-siren_use_bias: true
-siren_dropout: 0.1
-siren_final_activation: "tanh"
+# Configuration for Datatset
+train_dataset: '../../../dataset/fastmri/brain/singlecoil_train'
+transformations: ["normalize"]
+undersampled: true
+num_samples: 1
+mri_type: "FLAIR"
 
-# Configuration for ModulatedSiren
-mod_siren_image_width: 256
-mod_siren_image_height: 256
-mod_siren_modulate: true
+# Configuration for Network
+dim_in: 2
+dim_hidden: 256
+dim_out: 1
+latent_dim: 256
+num_layers: 5
+w0: 1.0
+w0_initial: 30.0
+use_bias: True
+dropout: 0.1
+image_width: 320
+image_height: 640
+modulate: True
 
 # Configuration for Trainer
-trainer_device: "cuda"
-trainer_train_dataset: "/path/to/train/dataset"
-trainer_val_dataset: "/path/to/val/dataset"
-trainer_lr: 0.0001
-trainer_batch_size: 16
-trainer_validation: true
-trainer_output_name: "training_output"
+lr: 0.0001
+batch_size: 1
+epochs: 1
