@@ -6,6 +6,7 @@ from datetime import datetime
 from tqdm import tqdm
 from utils.visualization import show_batch, show_image
 import sys
+import os
 
 
 def create_tqdm_bar(iterable, desc):
@@ -21,8 +22,8 @@ class Trainer:
         device,
         train_dataset,
         optimizer,
+        output_dir,
         val_dataset=None,
-        lr=1e-4,
         batch_size=1,
         output_name="output",
         scheduler=None,
@@ -42,9 +43,10 @@ class Trainer:
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.writer = SummaryWriter(
-            log_dir=f"../output/runs/{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+            log_dir=f"{output_dir}/runs/{datetime.now().strftime('%Y%m%d-%H%M%S')}"
         )
         self.output_name = output_name
+        self.output_dir = output_dir
 
     def train(self, num_epochs):
         validation_loss = 0
@@ -112,7 +114,10 @@ class Trainer:
         self.writer.close()
 
         with torch.no_grad():
+            if not os.path.exists(f"{self.output_dir}/model_checkpoints"):
+                os.makedirs(f"{self.output_dir}/model_checkpoints")
+
             torch.save(
                 self.model.state_dict(),
-                f"../output/model_checkpoints/{self.output_name}_model.pth",
+                f"{self.output_dir}/model_checkpoints/{self.output_name}_model.pth",
             )

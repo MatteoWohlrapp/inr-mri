@@ -11,6 +11,8 @@ from torchvision import transforms
 def train(args):
     print("Running the model...")
 
+    output_dir = "../output"
+
     # Setup device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -78,8 +80,8 @@ def train(args):
         model=model,
         device=device,
         train_dataset=train_dataset,
+        output_dir=output_dir,
         val_dataset=val_dataset,
-        lr=args.lr,
         batch_size=args.batch_size,
         output_name=args.name,
         optimizer=optimizer,

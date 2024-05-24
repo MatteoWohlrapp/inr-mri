@@ -6,7 +6,7 @@ name: "modulated_siren"
 train_dataset: '../../../dataset/fastmri/brain/singlecoil_train'
 transformations: ["normalize"]
 undersampled: true
-num_samples: 1
+num_samples: 10
 mri_type: "FLAIR"
 
 # Configuration for Network
@@ -26,4 +26,4 @@ modulate: True
 # Configuration for Trainer
 lr: 0.0001
 batch_size: 1
-epochs: 1
+epochs: 15000
