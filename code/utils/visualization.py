@@ -37,7 +37,7 @@ def show_image(image, cmap="gray"):
     plt.show()
 
 
-def save_image(image, filename, output_dir):
+def save_image(image, filename, output_dir, cmap="gray"):
     """
     Save a single image using matplotlib.
 
@@ -49,7 +49,7 @@ def save_image(image, filename, output_dir):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    plt.imshow(image.squeeze(), cmap="gray")
+    plt.imshow(image.squeeze(), cmap=cmap)
     plt.axis("off")
     plt.savefig(
         f"{output_dir}/{filename}.png",
@@ -58,14 +58,3 @@ def save_image(image, filename, output_dir):
         dpi=1200,
     )
     plt.close()
-
-
-def reconstruct_from_model(model, model_path, output_dir, filename, img):
-
-    reconstructed_image = model(img)
-
-    if reconstructed_image.is_cuda:
-        reconstructed_image = reconstructed_image.cpu()
-
-    save_image(reconstructed_image, f"{filename}_reconstructed", output_dir)
-    save_image(img, f"{filename}_gt", output_dir)

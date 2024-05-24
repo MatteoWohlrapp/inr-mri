@@ -74,7 +74,6 @@ def train(args):
     elif args.scheduler == "ExponentialLR":
         scheduler = ExponentialLR(optimizer, gamma=args.gamma)
 
-
     # Create trainer instance
     trainer = Trainer(
         model=model,

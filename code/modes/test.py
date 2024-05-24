@@ -1,19 +1,20 @@
-from utils.visualization import reconstruct_from_model
 from data.transformations import scale_mri_tensor_advanced
 import torch
 from data.mri_sampler import MRIRandomSampler
 from networks.networks import ModulatedSiren
 from torchvision import transforms
 import os
+from utils.error import inference_error
+
 
 def save_args_to_file(args, output_dir):
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    
-    args_path = os.path.join(output_dir, "config.txt")
-    
-    with open(args_path, 'w') as f:
+
+    config_path = os.path.join(output_dir, "config.txt")
+
+    with open(config_path, "w") as f:
         for arg, value in vars(args).items():
             f.write(f"{arg}: {value}\n")
 
@@ -58,22 +59,28 @@ def test(args):
         model.eval()
 
         for i in range(args.num_samples):
+            print(f"Processing sample {i + 1}/{args.num_samples}...")
             fully_sampled_img, undersampled_img, filename = sampler.get_random_sample()
+
+            output_dir_temp = os.path.join(output_dir, filename)
+            if not os.path.exists(output_dir_temp):
+                os.makedirs(output_dir_temp)
+
             fully_sampled_img = fully_sampled_img.squeeze().unsqueeze(0)
             undersampled_img = undersampled_img.squeeze().unsqueeze(0)
 
-            reconstruct_from_model(
+            inference_error(
                 model=model,
                 model_path=args.model_path,
-                output_dir=output_dir,
+                output_dir=output_dir_temp,
                 filename=f"{filename}_fully_sampled",
                 img=fully_sampled_img,
             )
 
-            reconstruct_from_model(
+            inference_error(
                 model=model,
                 model_path=args.model_path,
-                output_dir=output_dir,
+                output_dir=output_dir_temp,
                 filename=f"{filename}_undersampled",
                 img=undersampled_img,
             )
