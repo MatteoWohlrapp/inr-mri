@@ -1,0 +1,29 @@
+# Set the mode and name 
+mode: "train"
+name: "modulated_siren"
+
+# Configuration for Datatset
+train_dataset: '../../../dataset/fastmri/brain/singlecoil_train'
+transformations: ["normalize"]
+undersampled: true
+num_samples: 10
+mri_type: "FLAIR"
+
+# Configuration for Network
+dim_in: 2
+dim_hidden: 256
+dim_out: 1
+latent_dim: 256
+num_layers: 5
+w0: 1.0
+w0_initial: 30.0
+use_bias: True
+dropout: 0.1
+image_width: 320
+image_height: 640
+modulate: True
+
+# Configuration for Trainer
+lr: 0.0001
+batch_size: 1
+epochs: 15000

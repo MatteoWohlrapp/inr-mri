@@ -18,6 +18,6 @@
 conda deactivate
 conda activate adlm
 
-cd "/vol/aimspace/projects/practical_SoSe24/mri_inr/code/mri-inr/"
+cd "/vol/aimspace/projects/practical_SoSe24/mri_inr/code/mri-inr/code"
 
-python3 main.py
+python3 main.py -c "./configuration/train.yml"

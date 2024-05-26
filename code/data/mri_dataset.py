@@ -9,15 +9,25 @@ from fastmri.data import transforms as T
 from fastmri.data.subsample import RandomMaskFunc
 from utils.time_keeper import time_function
 
+
 class MRIDataset(Dataset):
-    def __init__(self, path: str, filter_func: Optional[Callable] = None, transform: Optional[Callable] = None, undersampled = True, number_of_samples = None):
+    def __init__(
+        self,
+        path: str,
+        filter_func: Optional[Callable] = None,
+        transform: Optional[Callable] = None,
+        undersampled=True,
+        number_of_samples=None,
+    ):
         """
         Args:
             path: Path to files
             transform: Optional callable to apply to the data (e.g., normalization, augmentation).
         """
         self.path = path
-        self.files = [os.path.join(path, f) for f in os.listdir(path) if f.endswith('.h5')]
+        self.files = [
+            os.path.join(path, f) for f in os.listdir(path) if f.endswith(".h5")
+        ]
         self.transform = transform
         self.samples = []
         self.undersampled = undersampled
@@ -25,19 +35,21 @@ class MRIDataset(Dataset):
 
         self._prepare_dataset(number_of_samples, filter_func)
 
-    def _prepare_dataset(self, number_of_samples = None, filter_func: Optional[Callable] = None):
-        """ Prepare the dataset by listing all file paths and the number of slices per file. """
+    def _prepare_dataset(
+        self, number_of_samples=None, filter_func: Optional[Callable] = None
+    ):
+        """Prepare the dataset by listing all file paths and the number of slices per file."""
         samples = 0
         for file_path in self.files:
             if (filter_func and filter_func(file_path)) or not filter_func:
                 print(f"Reading file: {file_path}")
-                with h5py.File(file_path, 'r') as hf:
-                    num_slices = hf['kspace'].shape[0]
+                with h5py.File(file_path, "r") as hf:
+                    num_slices = hf["kspace"].shape[0]
                     for s in range(num_slices):
                         self.samples.append((file_path, s))
-                        if number_of_samples: 
+                        if number_of_samples:
                             samples += 1
-                            if samples >= number_of_samples: 
+                            if samples >= number_of_samples:
                                 return
 
     def __len__(self):
@@ -46,20 +58,24 @@ class MRIDataset(Dataset):
     @time_function
     def __getitem__(self, idx):
         file_path, slice_idx = self.samples[idx]
-        with h5py.File(file_path, 'r') as hf:
-            kspace = np.asarray(hf['kspace'][slice_idx])
-            kspace_tensor = T.to_tensor(kspace)      # Convert from numpy array to pytorch tensor
+        with h5py.File(file_path, "r") as hf:
+            kspace = np.asarray(hf["kspace"][slice_idx])
+            kspace_tensor = T.to_tensor(
+                kspace
+            )  # Convert from numpy array to pytorch tensor
 
-            if self.undersampled: 
+            if self.undersampled:
                 mask_func = RandomMaskFunc(center_fractions=[0.1], accelerations=[8])
                 kspace_tensor, _, _ = T.apply_mask(kspace_tensor, mask_func)
 
-            image = fastmri.ifft2c(kspace_tensor)           # Apply Inverse Fourier Transform to get the complex image
-            image_abs = fastmri.complex_abs(image) 
+            image = fastmri.ifft2c(
+                kspace_tensor
+            )  # Apply Inverse Fourier Transform to get the complex image
+            image_abs = fastmri.complex_abs(image)
 
         image_abs = image_abs.float()
 
-        # apply transformations 
+        # apply transformations
         if self.transform:
             image_abs = self.transform(image_abs)
 

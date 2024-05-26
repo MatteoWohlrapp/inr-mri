@@ -5,3 +5,5 @@ numpy
 tensorboard
 requests
 einops
+pyyaml
+scikit-image

@@ -1,0 +1,27 @@
+# Set the mode and name 
+mode: "test"
+name: "modulated_siren_fully_sampled"
+
+# Configuration for Datatset
+test_dataset: '../../../dataset/fastmri/brain/singlecoil_val'
+transformations: ["normalize"]
+num_samples: 10
+mri_type: "FLAIR"
+
+# Configuration for Network
+dim_in: 2
+dim_hidden: 256
+dim_out: 1
+latent_dim: 256
+num_layers: 5
+w0: 1.0
+w0_initial: 30.0
+use_bias: True
+dropout: 0.1
+image_width: 320
+image_height: 640
+modulate: True
+
+# Configuration for Testing
+model_path: '../output/model_checkpoints/modulated_siren_fully_sampled_model.pth'
+test_files: ['file_brain_AXFLAIR_201_6003002.h5'] # only specify when you want to compare a specific file

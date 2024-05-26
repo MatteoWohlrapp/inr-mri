@@ -1,5 +1,3 @@
-*/__pycache__
-/runs
-/model_checkpoints/*
+/code/*/__pycache__
 *.pth
-/output
+/output/*

@@ -1,5 +1,6 @@
 import torch
 
+
 def scale_mri_tensor_advanced(img_tensor):
     mean_val = img_tensor.mean()
     std_dev = img_tensor.std()
