@@ -12,7 +12,7 @@ from utils.time_keeper import time_keeper, time_function
 
 def create_tqdm_bar(iterable, desc):
     return tqdm(
-        enumerate(iterable), total=len(iterable), ncols=150, desc=desc, file=sys.stdout
+        enumerate(iterable), total=len(iterable), ncols=150, desc=desc, file=sys.stdout, mininterval=100,
     )
 
 
@@ -34,7 +34,7 @@ class Trainer:
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
         self.train_loader = DataLoader(
-            train_dataset, batch_size=batch_size, shuffle=True
+            train_dataset, batch_size=batch_size, shuffle=True, num_workers=4
         )
         if val_dataset:
             self.val_loader = DataLoader(
@@ -49,6 +49,7 @@ class Trainer:
         self.output_name = output_name
         self.output_dir = output_dir
 
+    @time_function
     def train(self, num_epochs):
         validation_loss = 0
         for epoch in range(num_epochs):
@@ -122,5 +123,3 @@ class Trainer:
                 self.model.state_dict(),
                 f"{self.output_dir}/model_checkpoints/{self.output_name}_model.pth",
             )
-
-            time_keeper.summary()

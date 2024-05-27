@@ -31,10 +31,9 @@ class MRIRandomSampler:
             self.available_slices[file_path] = list(range(num_slices))
 
     def get_random_sample(self):
-        if not any(self.available_slices.values()):  
+        if not any(self.available_slices.values()):
             raise ValueError("No slices available to sample from.")
 
-        
         available_files = [f for f in self.available_slices if self.available_slices[f]]
         file_path = random.choice(available_files)
 
