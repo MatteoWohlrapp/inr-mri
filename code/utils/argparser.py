@@ -147,6 +147,11 @@ def add_args2parser_trainer(parser):
         default=0.1,
         help="Gamma (decay factor) for learning rate reduction",
     )
+    parser.add_argument(
+        "--limit_io",
+        default=False,
+        help="Decide if we print after each batch or epoch",
+    )
     return parser
 
 

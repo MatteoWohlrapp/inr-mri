@@ -1,5 +1,9 @@
 import torch
-from data.mri_dataset import MRIDataset, MRIDatasetTransformed
+from data.mri_dataset import (
+    MRIDataset,
+    MRIDatasetTransformed,
+    MRIDatasetTransformedInMemory,
+)
 from networks.networks import ModulatedSiren
 from trainer.trainer import Trainer
 from data.transformations import scale_mri_tensor_advanced
@@ -24,7 +28,7 @@ def train(args):
                 transformations.append(scale_mri_tensor_advanced)
 
     # Load dataset
-    train_dataset = MRIDatasetTransformed(
+    train_dataset = MRIDatasetTransformedInMemory(
         path=args.train_dataset,
         filter_func=(lambda x: args.mri_type in x),
         transform=transforms.Compose(transformations),
@@ -86,6 +90,7 @@ def train(args):
         output_name=args.name,
         optimizer=optimizer,
         scheduler=scheduler,
+        limit_io=args.limit_io,
     )
 
     # Start training
