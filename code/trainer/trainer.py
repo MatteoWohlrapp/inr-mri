@@ -43,7 +43,7 @@ class Trainer:
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.writer = SummaryWriter(
-            log_dir=f"{output_dir}/runs/{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+            log_dir=f"{output_dir}/runs/{output_name}"
         )
         self.output_name = output_name
         self.output_dir = output_dir
