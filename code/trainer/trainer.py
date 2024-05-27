@@ -33,7 +33,7 @@ class Trainer:
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
         self.train_loader = DataLoader(
-            train_dataset, batch_size=batch_size, shuffle=True
+            train_dataset, batch_size=batch_size, shuffle=True, num_workers=8
         )
         if val_dataset:
             self.val_loader = DataLoader(

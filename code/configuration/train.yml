@@ -3,7 +3,7 @@ mode: "train"
 name: "modulated_siren"
 
 # Configuration for Datatset
-train_dataset: '../../../dataset/fastmri/brain/singlecoil_train'
+train_dataset: '../../../dataset/fastmri/brain/singlecoil_train_normalized'
 transformations: ["normalize"]
 undersampled: true
 num_samples: 10

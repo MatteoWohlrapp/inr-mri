@@ -103,7 +103,6 @@ class MRIDatasetTransformed(Dataset):
         self.number_of_samples = number_of_samples
 
         self._prepare_dataset(filter_func)
-        print(f"Number of samples in list: {self.samples}")
 
     def _prepare_dataset(self, filter_func: Optional[Callable] = None):
         """Prepare the dataset by listing all file paths and the number of slices per file."""
