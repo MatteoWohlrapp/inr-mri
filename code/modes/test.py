@@ -18,6 +18,7 @@ def save_args_to_file(args, output_dir):
         for arg, value in vars(args).items():
             f.write(f"{arg}: {value}\n")
 
+
 def test(args):
     print("Testing the model...")
 

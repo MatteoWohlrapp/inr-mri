@@ -14,13 +14,13 @@ def main():
     else:
         train(args)
 
+
 # just to run the encoder quickly
 def main_encoder():
     args = parse_cmd_args()
     process_files()
     train_encoder(args)
-    
 
 
 if __name__ == "__main__":
-    main_encoder()
+    main()

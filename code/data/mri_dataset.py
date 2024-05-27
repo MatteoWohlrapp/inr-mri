@@ -81,35 +81,53 @@ class MRIDataset(Dataset):
 
 
 class MRIDatasetTransformed(Dataset):
-    def __init__(self, path: str, filter_func: Optional[Callable] = None, transform: Optional[Callable] = None):
+    def __init__(
+        self,
+        path: str,
+        filter_func: Optional[Callable] = None,
+        transform: Optional[Callable] = None,
+        undersampled=True,
+        number_of_samples=None,
+    ):
         """
         Args:
             path: Path to files
             transform: Optional callable to apply to the data (e.g., normalization, augmentation).
         """
         self.path = path
-        self.files = [os.path.join(path, f) for f in os.listdir(path) if f.endswith('.h5')]
+        self.files = [
+            os.path.join(path, f) for f in os.listdir(path) if f.endswith(".h5")
+        ]
         self.samples = []
+        self.undersampled = undersampled
+        self.number_of_samples = number_of_samples
 
         self._prepare_dataset(filter_func)
-    
+        print(f"Number of samples in list: {self.samples}")
+
     def _prepare_dataset(self, filter_func: Optional[Callable] = None):
-        """ Prepare the dataset by listing all file paths and the number of slices per file. """
+        """Prepare the dataset by listing all file paths and the number of slices per file."""
         for file_path in self.files:
             if (filter_func and filter_func(file_path)) or not filter_func:
-                with h5py.File(file_path, 'r') as hf:
-                    print(f'f keys: {list(hf.keys())}')
-                    num_slices = hf['image_space'].shape[0]
+                with h5py.File(file_path, "r") as hf:
+                    num_slices = hf["undersampled"].shape[0]
                     for s in range(num_slices):
                         self.samples.append((file_path, s))
+                        if self.number_of_samples > 0:
+                            self.number_of_samples -= 1
+                        else:
+                            return
 
     def __len__(self):
         return len(self.samples)
-    
+
     def __getitem__(self, idx):
         file_path, slice_idx = self.samples[idx]
-        with h5py.File(file_path, 'r') as hf:
-            image_abs = np.asarray(hf['image_space'][slice_idx])
+        with h5py.File(file_path, "r") as hf:
+            if self.undersampled:
+                image_abs = np.asarray(hf["undersampled"][slice_idx])
+            else:
+                image_abs = np.asarray(hf["fully_sampled"][slice_idx])
             image_abs = T.to_tensor(image_abs)
         image_abs = image_abs.float()
         return image_abs
