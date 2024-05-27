@@ -130,3 +130,61 @@ class MRIDatasetTransformed(Dataset):
             image_abs = T.to_tensor(image_abs)
         image_abs = image_abs.float()
         return image_abs
+
+
+class MRIDatasetTransformedInMemory(Dataset):
+    def __init__(
+        self,
+        path: str,
+        filter_func: Optional[Callable] = None,
+        transform: Optional[Callable] = None,
+        undersampled=True,
+        number_of_samples=None,
+    ):
+        """
+        Args:
+            path: Path to the data files.
+            transform: Optional callable to apply to the data (e.g., normalization, augmentation).
+            undersampled: Flag to indicate if the dataset should use undersampled data or fully sampled data.
+            number_of_samples: Limit the number of samples to load (useful for testing or restricted environments).
+        """
+        self.path = path
+        self.transform = transform
+        self.undersampled = undersampled
+        self.number_of_samples = number_of_samples
+        self.data = []
+
+        self._prepare_dataset(filter_func)
+
+    def _prepare_dataset(self, filter_func: Optional[Callable] = None):
+        """Prepare the dataset by loading all the data into memory."""
+        files = [
+            os.path.join(self.path, f)
+            for f in os.listdir(self.path)
+            if f.endswith(".h5")
+        ]
+
+        for file_path in files:
+            if filter_func and not filter_func(file_path):
+                continue
+
+            with h5py.File(file_path, "r") as hf:
+                dataset_key = "undersampled" if self.undersampled else "fully_sampled"
+                num_slices = hf[dataset_key].shape[0]
+                for s in range(num_slices):
+                    image_abs = np.asarray(hf[dataset_key][s])
+                    image_tensor = T.to_tensor(image_abs).float()
+                    if self.transform:
+                        image_tensor = self.transform(image_tensor)
+                    self.data.append(image_tensor)
+
+                    if self.number_of_samples is not None:
+                        self.number_of_samples -= 1
+                        if self.number_of_samples <= 0:
+                            return
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        return self.data[idx]

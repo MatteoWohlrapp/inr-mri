@@ -9,10 +9,17 @@ import sys
 import os
 
 
-def create_tqdm_bar(iterable, desc):
-    return tqdm(
-        enumerate(iterable), total=len(iterable), ncols=150, desc=desc, file=sys.stdout
-    )
+def create_tqdm_bar(iterable, desc, limit_io=False):
+    if not limit_io:
+        return tqdm(
+            enumerate(iterable),
+            total=len(iterable),
+            ncols=150,
+            desc=desc,
+            file=sys.stdout,
+        )
+    else:
+        return enumerate(iterable)
 
 
 class Trainer:
@@ -27,6 +34,7 @@ class Trainer:
         batch_size=1,
         output_name="output",
         scheduler=None,
+        limit_io=False,
     ):
         self.model = model.to(device)
         self.device = device
@@ -42,20 +50,23 @@ class Trainer:
         self.criterion = nn.MSELoss()
         self.optimizer = optimizer
         self.scheduler = scheduler
-        self.writer = SummaryWriter(
-            log_dir=f"{output_dir}/runs/{output_name}"
-        )
+        self.writer = SummaryWriter(log_dir=f"{output_dir}/runs/{output_name}")
         self.output_name = output_name
         self.output_dir = output_dir
+        self.limit_io = limit_io
 
     def train(self, num_epochs):
         validation_loss = 0
         for epoch in range(num_epochs):
             self.model.train()
             training_loop = create_tqdm_bar(
-                self.train_loader, desc=f"Training Epoch [{epoch}/{num_epochs}]"
+                self.train_loader,
+                desc=f"Training Epoch [{epoch}/{num_epochs}]",
+                limit_io=self.limit_io,
             )
             training_loss = 0
+            max_train_iteration = 0
+            max_val_iteration = 0
             for train_iteration, img_batch in training_loop:
                 img_batch = img_batch.to(self.device)
                 self.optimizer.zero_grad()
@@ -65,20 +76,24 @@ class Trainer:
                 self.optimizer.step()
 
                 training_loss += loss.item()
+                max_train_iteration = train_iteration
 
-                # Update the progress bar.
-                training_loop.set_postfix(
-                    train_loss="{:.8f}".format(training_loss / (train_iteration + 1)),
-                    val_loss="{:.8f}".format(validation_loss),
-                )
-                training_loop.refresh()
+                if not self.limit_io:
+                    # Update the progress bar.
+                    training_loop.set_postfix(
+                        train_loss="{:.8f}".format(
+                            training_loss / (train_iteration + 1)
+                        ),
+                        val_loss="{:.8f}".format(validation_loss),
+                    )
+                    training_loop.refresh()
 
-                # Update the tensorboard logger.
-                self.writer.add_scalar(
-                    "Training Loss",
-                    loss.item(),
-                    epoch * len(self.train_loader) + train_iteration,
-                )
+                    # Update the tensorboard logger.
+                    self.writer.add_scalar(
+                        "Training Loss",
+                        loss.item(),
+                        epoch * len(self.train_loader) + train_iteration,
+                    )
 
             # Validation
             if self.val_dataset is not None:
@@ -94,22 +109,34 @@ class Trainer:
                         loss = self.criterion(outputs, img_batch)
                         validation_loss += loss.item()
 
-                        # Update the progress bar.
-                        val_loop.set_postfix(
-                            val_loss="{:.8f}".format(
-                                validation_loss / (val_iteration + 1)
+                        if not self.limit_io:
+                            # Update the progress bar.
+                            val_loop.set_postfix(
+                                val_loss="{:.8f}".format(
+                                    validation_loss / (val_iteration + 1)
+                                )
                             )
-                        )
-                        val_loop.refresh()
+                            val_loop.refresh()
 
-                        # Update the tensorboard logger.
-                        self.writer.add_scalar(
-                            f"Validation Loss",
-                            validation_loss / (val_iteration + 1),
-                            epoch * len(self.val_loader) + val_iteration,
-                        )
+                            # Update the tensorboard logger.
+                            self.writer.add_scalar(
+                                f"Validation Loss",
+                                validation_loss / (val_iteration + 1),
+                                epoch * len(self.val_loader) + val_iteration,
+                            )
+                        max_val_iteration = val_iteration
             if self.scheduler:
                 self.scheduler.step()
+
+            if self.limit_io:
+                if self.val_dataset:
+                    print(
+                        f"Epoch: {epoch}, training loss {training_loss / (max_train_iteration) + 1}, validation loss {validation_loss / (max_val_iteration + 1)}"
+                    )
+                else:
+                    print(
+                        f"Epoch: {epoch}, training loss {training_loss / (max_train_iteration) + 1}"
+                    )
 
         self.writer.close()
 
