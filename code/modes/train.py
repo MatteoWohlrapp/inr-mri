@@ -33,6 +33,8 @@ def train(args):
         filter_func=(lambda x: args.mri_type in x),
         transform=transforms.Compose(transformations),
         number_of_samples=args.num_samples,
+        image_width=args.image_width,
+        image_height=args.image_height,
     )
 
     val_dataset = (
@@ -60,6 +62,7 @@ def train(args):
         use_bias=args.use_bias,
         dropout=args.dropout,
         modulate=args.modulate,
+        encoder_type=args.encoder_type,
     )
 
     # Select the optimizer

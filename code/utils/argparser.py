@@ -111,6 +111,13 @@ def add_args2parser_siren(parser):
         default=True,
         help="Flag to enable modulation in Modulated SIREN",
     )
+    parser.add_argument(
+        "--encoder_type",
+        type=str,
+        default="resnet18",
+        choices=["resnet18", "autoencoder"],
+        help="The enoder to derive the latent code from the input image",
+    )
     return parser
 
 

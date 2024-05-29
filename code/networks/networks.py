@@ -5,6 +5,8 @@ import torch.nn.functional as F
 from einops import rearrange
 from torchvision import models
 from torchvision.models import resnet18, ResNet18_Weights
+from networks.autoencoder.autoencoder import VGGAutoEncoder, get_configs
+from utils.checkpoint import load_dict
 
 
 def cast_tuple(val, repeat=1):
@@ -131,17 +133,25 @@ class Modulator(nn.Module):
 
 # encoder
 class Encoder(nn.Module):
-    def __init__(self, feature_extract=True, use_pretrained=True, latent_dim=256):
+    def __init__(self, encoder_type='resnet18', feature_extract=True, use_pretrained=True, latent_dim=256):
         super(Encoder, self).__init__()
-        self.resnet, num_features = self.load_pretrained_resnet(
+        
+        self.encoder_type = encoder_type
+        if encoder_type == 'resnet18':
+            self.encoder, num_features = self.load_pretrained_resnet(
             feature_extract, use_pretrained
-        )
+            )
 
-        # Add a fully connected layer to map to the desired latent vector size
-        self.fc = nn.Linear(num_features, latent_dim)
-        self.resnet.conv1 = nn.Conv2d(
-            1, 64, kernel_size=7, stride=2, padding=3, bias=False
-        )
+            # Add a fully connected layer to map to the desired latent vector size
+            self.fc = nn.Linear(num_features, latent_dim)
+            self.encoder.conv1 = nn.Conv2d(
+                1, 64, kernel_size=7, stride=2, padding=3, bias=False
+            )
+        elif encoder_type == 'autoencoder':
+            self.encoder, num_features = self.load_autoencoder()
+            self.encoder.conv1 = nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1, bias=False)
+            self.adaptive_pool = nn.AdaptiveAvgPool2d((7, 7))
+            self.fc = nn.Linear(num_features, latent_dim)
 
     def load_pretrained_resnet(self, feature_extract=True, use_pretrained=True):
         # Load a pretrained ResNet model
@@ -156,13 +166,24 @@ class Encoder(nn.Module):
         model.fc = nn.Identity()  # Remove the final fully connected layer
 
         return model, num_features
+    
+    def load_autoencoder(self):
+        
+        model = VGGAutoEncoder(get_configs("vgg16"))
+        load_dict("../output/model_checkpoints/imagenet-vgg16.pth", model)
+
+        num_features = 512 * 7 * 7
+
+        return model.encoder, num_features
 
     def forward(self, x):
-        # Use the ResNet for feature extraction
         x = x.unsqueeze(1)
-        features = self.resnet(x)
-        # Map features to the latent vector space
-        latent_vector = self.fc(features)
+        x = self.encoder(x)
+        if self.encoder_type == 'autoencoder':  
+            x = self.adaptive_pool(x)
+            x = torch.flatten(x, 1)
+
+        latent_vector = self.fc(x)
         return latent_vector
 
 
@@ -182,6 +203,7 @@ class ModulatedSiren(nn.Module):
         use_bias,
         dropout,
         modulate,
+        encoder_type
     ):
         super().__init__()
 
@@ -192,6 +214,7 @@ class ModulatedSiren(nn.Module):
         self.num_layers = num_layers
         self.latent_dim = latent_dim
         self.modulate = modulate
+        self.encoder_type = encoder_type
 
         self.net = SirenNet(
             dim_in=dim_in,
@@ -208,7 +231,7 @@ class ModulatedSiren(nn.Module):
             dim_in=latent_dim, dim_hidden=dim_hidden, num_layers=num_layers
         )
 
-        self.encoder = Encoder(latent_dim=latent_dim)
+        self.encoder = Encoder(latent_dim=latent_dim, encoder_type=encoder_type)
 
         tensors = [
             torch.linspace(-1, 1, steps=image_height),
