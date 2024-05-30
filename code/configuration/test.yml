@@ -1,10 +1,9 @@
 # Set the mode and name 
 mode: "test"
-name: "modulated_siren_fully_sampled"
+name: "vgg_encoder_10_samples"
 
 # Configuration for Datatset
-test_dataset: '../../../dataset/fastmri/brain/singlecoil_val'
-transformations: ["normalize"]
+test_dataset: '../../../dataset/fastmri/brain/singlecoil_train_normalized'
 num_samples: 10
 mri_type: "FLAIR"
 
@@ -21,7 +20,8 @@ dropout: 0.1
 image_width: 320
 image_height: 640
 modulate: True
+encoder_type: "autoencoder"
 
 # Configuration for Testing
-model_path: '../output/model_checkpoints/modulated_siren_fully_sampled_model.pth'
-test_files: ['file_brain_AXFLAIR_201_6003002.h5'] # only specify when you want to compare a specific file
+model_path: '../output/model_checkpoints/2024-05-29_21-11-08_vgg_encoder_model.pth'
+test_files: ['file_brain_AXFLAIR_200_6002467.h5'] # only specify when you want to compare a specific file

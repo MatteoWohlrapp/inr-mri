@@ -6,7 +6,6 @@ from fastmri.data.subsample import RandomMaskFunc
 import fastmri
 from fastmri.data import transforms as T
 
-
 class MRIRandomSampler:
     def __init__(
         self, path, seed=42, filter_func=None, transform=None, test_files=None
@@ -67,3 +66,55 @@ class MRIRandomSampler:
         image_abs = fastmri.complex_abs(image)
         image_abs = image_abs.float()
         return image_abs
+
+class MRIRandomSamplerTransformed:
+    def __init__(
+        self, path, seed=42, filter_func=None, transform=None, test_files=None
+    ):
+        self.path = path
+        self.transform = transform
+        random.seed(seed)  # Seed for reproducibility
+        self.files = (
+            [
+                os.path.join(path, f)
+                for f in os.listdir(path)
+                if f.endswith(".h5") and (filter_func is None or filter_func(f))
+            ]
+            if test_files is None
+            else [os.path.join(path, f) for f in test_files]
+        )
+
+        self.available_slices = {}
+        for file_path in self.files:
+            with h5py.File(file_path, "r") as hf:
+                num_slices = hf["undersampled"].shape[0]
+            self.available_slices[file_path] = list(range(num_slices))
+
+    def get_random_sample(self):
+        if not any(self.available_slices.values()):
+            raise ValueError("No slices available to sample from.")
+
+        available_files = [f for f in self.available_slices if self.available_slices[f]]
+        file_path = random.choice(available_files)
+
+        slice_idx = random.choice(self.available_slices[file_path])
+        self.available_slices[file_path].remove(slice_idx)
+
+        with h5py.File(file_path, "r") as hf:
+            original_image = np.asarray(hf["fully_sampled"][slice_idx])
+
+        with h5py.File(file_path, "r") as hf:
+            undersampled_image = np.asarray(hf["undersampled"][slice_idx])
+
+
+        original_image = T.to_tensor(original_image).float()
+        undersampled_image = T.to_tensor(undersampled_image).float()
+
+        if self.transform:
+            original_image = self.transform(original_image)
+            undersampled_image = self.transform(undersampled_image)
+
+        filename = os.path.basename(file_path)
+        filename = os.path.splitext(filename)[0]
+
+        return original_image, undersampled_image, f"{filename}_slice{slice_idx}"

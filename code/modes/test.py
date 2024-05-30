@@ -1,6 +1,6 @@
 from data.transformations import scale_mri_tensor_advanced
 import torch
-from data.mri_sampler import MRIRandomSampler
+from data.mri_sampler import MRIRandomSampler, MRIRandomSamplerTransformed
 from networks.networks import ModulatedSiren
 from torchvision import transforms
 import os
@@ -32,7 +32,7 @@ def test(args):
             transformations.append(scale_mri_tensor_advanced)
 
     # Load the dataset
-    sampler = MRIRandomSampler(
+    sampler = MRIRandomSamplerTransformed(
         path=args.test_dataset,
         filter_func=(lambda x: args.mri_type in x),
         transform=transforms.Compose(transformations),
@@ -52,6 +52,7 @@ def test(args):
         use_bias=args.use_bias,
         dropout=args.dropout,
         modulate=args.modulate,
+        encoder_type=args.encoder_type,
     )
 
     model.load_state_dict(torch.load(args.model_path, map_location=torch.device("cpu")))
