@@ -131,11 +131,11 @@ class Trainer:
             if self.limit_io:
                 if self.val_dataset:
                     print(
-                        f"Epoch: {epoch}, training loss {training_loss / (max_train_iteration) + 1}, validation loss {validation_loss / (max_val_iteration + 1)}"
+                        f"Epoch: {epoch}, training loss {training_loss / (max_train_iteration) + 1}, validation loss {validation_loss / (max_val_iteration + 1)}", flush=True
                     )
                 else:
                     print(
-                        f"Epoch: {epoch}, training loss {training_loss / (max_train_iteration) + 1}"
+                        f"Epoch: {epoch}, training loss {training_loss / (max_train_iteration) + 1}", flush=True
                     )
 
         self.writer.close()

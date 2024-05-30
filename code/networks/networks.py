@@ -178,7 +178,8 @@ class Encoder(nn.Module):
 
     def forward(self, x):
         x = x.unsqueeze(1)
-        x = self.encoder(x)
+        with torch.no_grad():
+            x = self.encoder(x)
         if self.encoder_type == 'autoencoder':  
             x = self.adaptive_pool(x)
             x = torch.flatten(x, 1)
