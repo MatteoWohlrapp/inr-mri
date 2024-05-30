@@ -43,7 +43,8 @@ You can see visualizations of the training by running `tensorboard --logdir=runs
 python main.py -c ./configuration/test.yml
 ```
 
-The `-c` flag is used to specify the path to the configuration file.
+The `-c` flag is used to specify the path to the configuration file. <br>
+To run the `autoencoder` encoder, you will need to download the VGG-16 pretrained model on ImageNet from [here](https://github.com/Horizon2333/imagenet-autoencoder/tree/main) and add it under `output/model_checkpoints` in the root of the repository.
 
 ## Command-Line Arguments
 Use the `-h` option to view all available command-line arguments and their descriptions:
