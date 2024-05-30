@@ -1,3 +1,4 @@
+# Code from here: https://github.com/Horizon2333/imagenet-autoencoder/tree/main to use VGG as AutoEncoder
 import torch
 import torch.nn as nn
 
