@@ -1,26 +1,46 @@
 import torch
-from data.mri_dataset import MRIDataset, MRIDatasetTransformed
-from networks.networks import ModulatedSiren
-from trainer.trainer import Trainer
-from networks.encoder.encoder import get_encoder, test_encoder
+from data.mri_dataset import MRIDatasetTransformed
+from networks.encoder.encoder import Trainer, build_autoencoder, config, load_model, save_model
+from networks.encoder.parser import get_args
 import pathlib
-
-path_train = pathlib.Path(
-    r"/vol/aimspace/projects/practical_SoSe24/mri_inr/dataset/fastmri/brain/singlecoil_train_normalized"
-)
-path_val = pathlib.Path(
-    r"/vol/aimspace/projects/practical_SoSe24/mri_inr/dataset/fastmri/brain/singlecoil_val_normalized"
-)
-
 
 def train_encoder(args):
     print("Training the encoder...")
-
+    print(args)
     # Load dataset
-    train_dataset = MRIDatasetTransformed(path_train, number_of_samples = 20000)
-    val_dataset = MRIDatasetTransformed(path_val, number_of_samples = 500)
-    print(f'Size of train dataset: {len(train_dataset)}')
-    print(f'Size of val dataset: {len(val_dataset)}')
+    train_dataset = MRIDatasetTransformed(pathlib.Path(args.path_train_dataset), number_of_samples = args.num_samples_train)
+    val_dataset = MRIDatasetTransformed(pathlib.Path(args.path_val_dataset), number_of_samples = args.num_samples_val)
 
-    # Get encoder
-    encoder = get_encoder(train_dataset, val_dataset, num_epochs=200, batch_size = 200)
+    # Set the device
+    if args.device == "cuda" and torch.cuda.is_available():
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+
+    # Load the model
+    if args.model_path == "":
+        autoencoder = build_autoencoder(config)
+    else:
+        autoencoder = load_model(pathlib.Path(args.model_path))
+
+    # Define the criterion and optimizer
+    criterion = torch.nn.MSELoss()
+    optimizer = torch.optim.Adam(autoencoder.parameters(), lr=0.001)
+
+    # Define the trainer
+    trainer = Trainer(
+        autoencoder,
+        criterion,
+        optimizer,
+        device,
+        train_dataset,
+        val_dataset,
+        args.batch_size,
+    )
+
+    # Train the model
+    trainer.train(args.epochs)
+
+    # Save the model TODO change path if not given
+    save_model(autoencoder, pathlib.Path(args.model_path))
+

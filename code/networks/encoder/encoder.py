@@ -111,40 +111,19 @@ class Autoencoder(nn.Module):
         self.latent_dim = latent_dim
 
     def forward(self, x):
-        # loop over batch
-        print(x.shape,1)
         batch_size = x.shape[0]
         height = x.shape[1]
         width = x.shape[2]
-        x = extract_patches(x, window_size) #n_img, 200, 32,32
-        x = x.view(-1, 1, window_size, window_size)#.cuda()
+        x = extract_patches(x, window_size)
+        x = x.view(-1, 1, window_size, window_size)
         x = self.encoder(x)
         x = self.decoder(x)
         x = x.view(batch_size, -1, window_size, window_size)
         x = reconstruct_image(x, height, width, window_size)
         return x
 
-    def encode(self, x):
-        x = extract_patches(x, window_size)
-        x = x.view(-1, 1, window_size, window_size).cuda()
-        x = self.encoder(x)
-        return x
-
-
-class AutoencoderBuilder:
-    def __init__(self, config):
-        self.config = config
-
-    def build_network(self):
-        encoder_layers = self.build_layers(self.config["encoder"])
-        decoder_layers = self.build_layers(self.config["decoder"])
-        return Autoencoder(
-            nn.Sequential(*encoder_layers),
-            nn.Sequential(*decoder_layers),
-            self.config["id"],
-        )
-
-    def build_layers(self, layer_configs):
+def build_autoencoder(config):
+    def build_layers(layer_configs):
         layers = []
         for layer in layer_configs:
             layer_type = layer["type"]
@@ -168,17 +147,26 @@ class AutoencoderBuilder:
                 raise ValueError(f"Unsupported layer type: {layer_type}")
         return layers
 
+    encoder_layers = build_layers(config["encoder"])
+    decoder_layers = build_layers(config["decoder"])
+    return Autoencoder(
+        nn.Sequential(*encoder_layers),
+        nn.Sequential(*decoder_layers),
+        config["id"],
+    )
 
-def load_config(file_path, file_type="yaml"):
-    if file_type == "yaml":
-        with open(file_path, "r") as file:
-            return yaml.safe_load(file)
-    elif file_type == "json":
-        with open(file_path, "r") as file:
-            return json.load(file)
-    else:
-        raise ValueError(f"Unsupported file type: {file_type}")
+def save_model(autoencoder, path):
+    torch.save({
+        'config': autoencoder.config,
+        'state_dict': autoencoder.state_dict()
+    }, path)
 
+def load_model(path):
+    checkpoint = torch.load(path)
+    config = checkpoint['config']
+    autoencoder = build_autoencoder(config)
+    autoencoder.load_state_dict(checkpoint['state_dict'])
+    return autoencoder
 
 class Trainer:
     def __init__(
@@ -203,26 +191,36 @@ class Trainer:
         )
         self.writer = SummaryWriter(log_dir=f"runs/tensorboard/{self.name}")
 
-    def save_model(self):
-        pathlib.Path(
-            r"/vol/aimspace/projects/practical_SoSe24/mri_inr/jrdev/models"
-        ).mkdir(parents=True, exist_ok=True)
-        torch.save(
-            {
-                "model_state_dict": self.model.state_dict(),
-                "optimizer_state_dict": self.optimizer.state_dict(),
-            },
-            pathlib.Path(
-                r"/vol/aimspace/projects/practical_SoSe24/mri_inr/jrdev/models/"
-                + self.name
-                + ".pth"
-            ),
-        )
+    def process_batch(self, batch):
+        batch = batch.to(self.device)
+        self.optimizer.zero_grad()
+        output = self.model(batch)
+        loss = self.criterion(output, batch)
+        return output, loss
 
-    def load_model(self, path):
-        checkpoint = torch.load(path)
-        self.model.load_state_dict(checkpoint["model_state_dict"])
-        self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    def train_one_epoch(self, train_loader, epoch):
+        self.model.train()
+        for i, batch in enumerate(train_loader):
+            output, loss = self.process_batch(batch)
+            loss.backward()
+            self.optimizer.step()
+            self.writer.add_scalar(
+                "training_loss", loss.item(), epoch * len(train_loader) + i
+            )
+
+    def validate_one_epoch(self, val_loader, epoch):
+        self.model.eval()
+        val_loss = 0
+        n_val = 0
+        with torch.no_grad():
+            for i, batch in enumerate(val_loader):
+                output, loss = self.process_batch(batch)
+                self.writer.add_scalar(
+                    "validation_loss", loss.item(), epoch * len(val_loader) + i
+                )
+                val_loss += loss.item()
+                n_val = i
+        return val_loss / n_val
 
     def train(self, num_epochs):
         train_loader = torch.utils.data.DataLoader(
@@ -231,80 +229,23 @@ class Trainer:
         val_loader = torch.utils.data.DataLoader(
             self.val_dataset, batch_size=self.batch_size, shuffle=True
         )
-        pbar = tqdm.tqdm(range(num_epochs* len(train_loader)) )
         for epoch in range(num_epochs):
-            self.model.train()
-            for i, batch in enumerate(train_loader):
-                batch = batch.to(self.device)
-                self.optimizer.zero_grad()
-                output = self.model(batch)
-                loss = self.criterion(output, batch)
-                loss.backward()
-                self.optimizer.step()
-                self.writer.add_scalar(
-                    "training_loss", loss.item(), epoch * len(train_loader) + i
-                )
-                pbar.set_description(f"Epoch {epoch}, Train Loss: {loss.item():.5f}")
-                pbar.update()
-            self.model.eval()
-            val_loss = 0
-            n_val = 0
-            with torch.no_grad():
-                for i, batch in enumerate(val_loader):
-                    batch = batch.to(self.device)
-                    output = self.model(batch)
-                    loss = self.criterion(output, batch)
-                    self.writer.add_scalar(
-                        "validation_loss", loss.item(), epoch * len(val_loader) + i
-                    )
-                    val_loss += loss.item()
-                    n_val = i
-            pbar.set_description(f"Epoch {epoch}, Val Loss: {val_loss/n_val:.5f}")
+            self.train_one_epoch(train_loader, epoch)
+            val_loss = self.validate_one_epoch(val_loader, epoch)
+            print(f"Epoch {epoch}, Val Loss: {val_loss:.5f}")
         self.save_model()
         self.writer.close()
 
+class Encoder(nn.Module):
+    """Encoder model extracted from the autoencoder model"""
+    def __init__(self, autoencoder_path):
+        super(Encoder, self).__init__()
+        autoencoder = load_model(autoencoder_path)
+        self.encoder = autoencoder.encoder
 
-def get_encoder(train_dataset, val_dataset, config=config, num_epochs=1, batch_size = 1):
-    # train the autoencoder
-    autoencoder_builder = AutoencoderBuilder(config)
-    model = autoencoder_builder.build_network()
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f'Using {device} as device.')
-    trainer = Trainer(
-        model=model,
-        criterion=torch.nn.MSELoss(),
-        optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),
-        device=device,
-        train_dataset=train_dataset,
-        val_dataset=val_dataset,
-        batch_size=batch_size,
-    )
-    trainer.train(num_epochs)
-    # return the model in evaluation mode
-    model.eval()
-    return model
+    def forward(self, x):
+        x = extract_patches(x, window_size)
+        x = x.view(-1, 1, window_size, window_size)
+        x = self.encoder(x)
+        return x
 
-
-def test_encoder(encoder, image, dest_dir, title = 'Image title', ):
-    # plot the original image and the reconstructed image side by side
-    fig, axs = plt.subplots(1, 3)
-    fig.suptitle(title)
-    axs[0].imshow(image, cmap="gray")
-    axs[0].set_title("Original Image")
-    image = image.clone().detach().float().unsqueeze(0).unsqueeze(0)
-    #image = image.to(torch.device("cuda"))
-    image = image.squeeze(0)
-    image = image.cpu()
-    output = encoder(image)
-    output = output.cpu().detach().numpy()
-    output = np.squeeze(output)
-    axs[1].imshow(output, cmap="gray")
-    axs[1].set_title("Reconstructed Image")
-    diff = np.abs(image.cpu().detach().numpy() - output).squeeze(0)
-    print(f'Shape{diff.shape}')
-    axs[2].imshow(diff, cmap='gray')
-    axs[2].set_title('Difference')
-    print('saving image')
-    plt.savefig(dest_dir)
-    print('Done saving image')
-    return

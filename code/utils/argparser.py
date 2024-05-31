@@ -206,7 +206,6 @@ def mk_parser_main():
 
     return parser
 
-
 def parse_cmd_args():
     parser = mk_parser_main()
     args = parser.parse_args()

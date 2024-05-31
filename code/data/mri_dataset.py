@@ -95,7 +95,7 @@ class MRIDatasetTransformed(Dataset):
         undersampled=True,
         number_of_samples=None,
         image_width = 320, 
-        image_height = 640
+        image_height = 640,
         shuffle = False
     ):
         """
@@ -122,6 +122,7 @@ class MRIDatasetTransformed(Dataset):
 
         self._prepare_dataset(filter_func)
 
+        #TODO into a function?
         if self.shuffle:
             self.samples = shuffle_list_with_seed(self.samples)
 

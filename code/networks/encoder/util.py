@@ -1,5 +1,8 @@
 import torch
 import torch.nn.functional as F
+import numpy as np
+import matplotlib.pyplot as plt
+import torch
 
 
 def extract_patches(tensor, patch_size):
@@ -63,3 +66,60 @@ def reconstruct_image(patches, image_height, image_width, patch_size):
     # remove the extra dimension
     recon_images = recon_images.squeeze(1)
     return recon_images
+
+def process_image(image, encoder):
+    '''Process the image through the encoder and return the original image, the output of the encoder and the difference between the two.
+    Args:
+        image: torch.Tensor: The image to be processed.
+        encoder: torch.nn.Module: The encoder model.
+    Returns:
+        image: torch.Tensor: The original image.
+        output: torch.Tensor: The output of the encoder.
+        diff: torch.Tensor: The difference between the original image and the output of the encoder.
+    '''
+    image = image.clone().detach().float().unsqueeze(0).unsqueeze(0)
+    image = image.squeeze(0)
+    image = image.cpu()
+    output = encoder(image)
+    output = output.cpu().detach().numpy()
+    output = np.squeeze(output)
+    diff = np.abs(image.cpu().detach().numpy() - output).squeeze(0)
+    return image, output, diff
+
+def plot_images(image, output, diff, title):
+    '''Plot the original image, the output of the encoder and the difference between the two.
+    Args:
+        image: torch.Tensor: The original image.
+        output: torch.Tensor: The output of the encoder.
+        diff: torch.Tensor: The difference between the original image and the output of the encoder.
+        title: str: The title of the plot.
+    '''
+    fig, axs = plt.subplots(1, 3)
+    fig.suptitle(title)
+    axs[0].imshow(image, cmap="gray")
+    axs[0].set_title("Original Image")
+    axs[1].imshow(output, cmap="gray")
+    axs[1].set_title("Reconstructed Image")
+    axs[2].imshow(diff, cmap='gray')
+    axs[2].set_title('Difference')
+
+def save_plot(dest_dir):
+    '''Save the plot to the destination directory.
+    Args:
+        dest_dir: str: The destination directory.
+    '''
+    print('saving image')
+    plt.savefig(dest_dir)
+    print('Done saving image')
+
+def plot_encoder_output(encoder, image, dest_dir, title = 'Image title'):
+    '''Test the encoder model on an image and plot the results.
+    Args:
+        encoder: torch.nn.Module: The encoder model.
+        image: torch.Tensor: The image to be processed.
+        dest_dir: str: The destination directory to save the plot.
+        title: str: The title of the plot.
+    '''
+    image, output, diff = process_image(image, encoder)
+    plot_images(image, output, diff, title)
+    save_plot(dest_dir)

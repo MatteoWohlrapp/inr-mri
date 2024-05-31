@@ -3,29 +3,32 @@ from modes.train import train
 from modes.test import test
 from modes.train_encoder import train_encoder
 from data.data_transform import process_files
-from networks.encoder.encoder import AutoencoderBuilder, config, get_encoder, test_encoder
+from networks.encoder.encoder import config
+from networks.encoder.util import plot_encoder_output
 from data.mri_dataset import MRIDataset, MRIDatasetTransformed
 import pathlib
 import torch
+from networks.encoder.parser import get_args
+from modes.train_encoder import train_encoder
+from networks.encoder.encoder import build_autoencoder, load_model
 
 
 def main():
 
     args = parse_cmd_args()
-
+    return
     if args.mode == "test":
         test(args)
     else:
         train(args)
 
 
-# just to run the encoder quickly
 def main_encoder():
-    args = parse_cmd_args()
-    #process_files()
-    train_encoder(args)
+    args = get_args()
+    print(args)
+    #train_encoder(args)
 
-def plot_example():
+def plot_examples():
     n_plots = 100
     path_train = pathlib.Path(
     r"/vol/aimspace/projects/practical_SoSe24/mri_inr/dataset/fastmri/brain/singlecoil_train_normalized"
@@ -35,15 +38,14 @@ def plot_example():
     )
     dataset = MRIDatasetTransformed(path_val, number_of_samples = 200, shuffle = True)
     model_path = pathlib.Path(r'/vol/aimspace/projects/practical_SoSe24/mri_inr/jrdev/models/20240530-170738_autoencoder_v1_256.pth')
-    autoencoder = AutoencoderBuilder(config).build_network()
-    autoencoder.load_state_dict(torch.load(model_path)['model_state_dict'])
+    autoencoder = load_model(model_path)
     dest_dir_folder = pathlib.Path(r'/vol/aimspace/projects/practical_SoSe24/mri_inr/jrdev/models/plots') / model_path.stem
     dest_dir_folder.mkdir()
     for i in range(n_plots):
-        test_encoder(autoencoder,dataset[i], dest_dir_folder / f'{pathlib.Path(dataset.samples[i][0]).stem}.png', str(pathlib.Path(dataset.samples[i][0]).stem))
+        plot_encoder_output(autoencoder,dataset[i], dest_dir_folder / f'{pathlib.Path(dataset.samples[i][0]).stem}.png', str(pathlib.Path(dataset.samples[i][0]).stem))
 
 
 
 # #SBATCH --partition=course
 if __name__ == "__main__":
-    plot_example()
+    main_encoder()

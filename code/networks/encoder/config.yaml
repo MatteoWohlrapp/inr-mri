@@ -1,0 +1,10 @@
+path_train_dataset: /vol/aimspace/projects/practical_SoSe24/mri_inr/dataset/fastmri/brain/singlecoil_train_normalized
+path_val_dataset: /vol/aimspace/projects/practical_SoSe24/mri_inr/dataset/fastmri/brain/singlecoil_val_normalized
+path_model: /vol/aimspace/projects/practical_SoSe24/mri_inr/jrdev/models/20240530-170738_autoencoder_v1_256.pth
+
+epochs: 1000
+batch_size: 100
+lr: 0.0001
+device: cuda
+num_samples_train: 10000
+num_samples_val: 1000
