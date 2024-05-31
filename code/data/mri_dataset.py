@@ -7,7 +7,13 @@ from typing import List, Optional, Callable
 import fastmri
 from fastmri.data import transforms as T
 from fastmri.data.subsample import RandomMaskFunc
+import random
 
+def shuffle_list_with_seed(input_list, seed = None):
+    if seed:
+        random.seed(seed)
+    random.shuffle(input_list)
+    return input_list
 
 class MRIDataset(Dataset):
     def __init__(
@@ -90,6 +96,7 @@ class MRIDatasetTransformed(Dataset):
         number_of_samples=None,
         image_width = 320, 
         image_height = 640
+        shuffle = False
     ):
         """
         Args:
@@ -100,6 +107,13 @@ class MRIDatasetTransformed(Dataset):
         self.files = [
             os.path.join(path, f) for f in os.listdir(path) if f.endswith(".h5")
         ]
+        #for testing
+        print('Size')
+        print(len(self.files))
+        """
+        self.files = [file for file in self.files if 'FLAIR' in str(file)]
+        print(len(self.files))"""
+        self.shuffle = shuffle
         self.samples = []
         self.undersampled = undersampled
         self.number_of_samples = number_of_samples
@@ -107,6 +121,9 @@ class MRIDatasetTransformed(Dataset):
         self.image_height = image_height
 
         self._prepare_dataset(filter_func)
+
+        if self.shuffle:
+            self.samples = shuffle_list_with_seed(self.samples)
 
     def _prepare_dataset(self, filter_func: Optional[Callable] = None):
         """Prepare the dataset by listing all file paths and the number of slices per file."""
@@ -137,6 +154,9 @@ class MRIDatasetTransformed(Dataset):
                 image_abs = np.asarray(hf["fully_sampled"][slice_idx])
             image_abs = T.to_tensor(image_abs)
         image_abs = image_abs.float()
+        #change norm from [-1,1] to [0,1] for testing
+        image_abs =  image_abs + 1
+        image_abs = image_abs / 2
         return image_abs
 
 

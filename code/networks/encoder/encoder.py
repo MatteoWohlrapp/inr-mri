@@ -10,6 +10,7 @@ import datetime
 import pathlib
 import tqdm
 from networks.encoder.util import extract_patches, reconstruct_image
+import matplotlib.pyplot as plt
 
 window_size = 32
 latent_dim = 256
@@ -102,20 +103,21 @@ class Inspector(nn.Module):
 
 class Autoencoder(nn.Module):
 
-    def __init__(self, encoder, decoder, id):
+    def __init__(self, encoder, decoder, id_):
         super(Autoencoder, self).__init__()
         self.encoder = encoder
         self.decoder = decoder
-        self.id = id
+        self.id = id_
         self.latent_dim = latent_dim
 
     def forward(self, x):
         # loop over batch
+        print(x.shape,1)
         batch_size = x.shape[0]
         height = x.shape[1]
         width = x.shape[2]
-        x = extract_patches(x, window_size)
-        x = x.view(-1, 1, window_size, window_size).cuda()
+        x = extract_patches(x, window_size) #n_img, 200, 32,32
+        x = x.view(-1, 1, window_size, window_size)#.cuda()
         x = self.encoder(x)
         x = self.decoder(x)
         x = x.view(batch_size, -1, window_size, window_size)
@@ -203,7 +205,7 @@ class Trainer:
 
     def save_model(self):
         pathlib.Path(
-            r"/vol/aimspace/projects/practical_SoSe24/mri_inr/runs/models/"
+            r"/vol/aimspace/projects/practical_SoSe24/mri_inr/jrdev/models"
         ).mkdir(parents=True, exist_ok=True)
         torch.save(
             {
@@ -211,7 +213,7 @@ class Trainer:
                 "optimizer_state_dict": self.optimizer.state_dict(),
             },
             pathlib.Path(
-                r"/vol/aimspace/projects/practical_SoSe24/mri_inr/runs/models/"
+                r"/vol/aimspace/projects/practical_SoSe24/mri_inr/jrdev/models/"
                 + self.name
                 + ".pth"
             ),
@@ -229,8 +231,8 @@ class Trainer:
         val_loader = torch.utils.data.DataLoader(
             self.val_dataset, batch_size=self.batch_size, shuffle=True
         )
-        pbar = tqdm.tqdm(range(num_epochs))
-        for epoch in pbar:
+        pbar = tqdm.tqdm(range(num_epochs* len(train_loader)) )
+        for epoch in range(num_epochs):
             self.model.train()
             for i, batch in enumerate(train_loader):
                 batch = batch.to(self.device)
@@ -242,8 +244,11 @@ class Trainer:
                 self.writer.add_scalar(
                     "training_loss", loss.item(), epoch * len(train_loader) + i
                 )
-                pbar.set_description(f"Epoch {epoch}, Loss: {loss.item()}")
+                pbar.set_description(f"Epoch {epoch}, Train Loss: {loss.item():.5f}")
+                pbar.update()
             self.model.eval()
+            val_loss = 0
+            n_val = 0
             with torch.no_grad():
                 for i, batch in enumerate(val_loader):
                     batch = batch.to(self.device)
@@ -252,23 +257,27 @@ class Trainer:
                     self.writer.add_scalar(
                         "validation_loss", loss.item(), epoch * len(val_loader) + i
                     )
+                    val_loss += loss.item()
+                    n_val = i
+            pbar.set_description(f"Epoch {epoch}, Val Loss: {val_loss/n_val:.5f}")
         self.save_model()
         self.writer.close()
 
 
-def get_encoder(train_dataset, val_dataset, config=config, num_epochs=2):
+def get_encoder(train_dataset, val_dataset, config=config, num_epochs=1, batch_size = 1):
     # train the autoencoder
     autoencoder_builder = AutoencoderBuilder(config)
     model = autoencoder_builder.build_network()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f'Using {device} as device.')
     trainer = Trainer(
         model=model,
         criterion=torch.nn.MSELoss(),
-        optimizer=torch.optim.Adam(model.parameters(), lr=1e-4),
+        optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),
         device=device,
         train_dataset=train_dataset,
         val_dataset=val_dataset,
-        batch_size=1,
+        batch_size=batch_size,
     )
     trainer.train(num_epochs)
     # return the model in evaluation mode
@@ -276,20 +285,26 @@ def get_encoder(train_dataset, val_dataset, config=config, num_epochs=2):
     return model
 
 
-def test_encoder(encoder, image):
+def test_encoder(encoder, image, dest_dir, title = 'Image title', ):
     # plot the original image and the reconstructed image side by side
-    import matplotlib.pyplot as plt
-
-    fig, axs = plt.subplots(1, 2)
+    fig, axs = plt.subplots(1, 3)
+    fig.suptitle(title)
     axs[0].imshow(image, cmap="gray")
     axs[0].set_title("Original Image")
-    image = torch.tensor(image).float().unsqueeze(0).unsqueeze(0)
-    image = image.to(torch.device("cuda"))
+    image = image.clone().detach().float().unsqueeze(0).unsqueeze(0)
+    #image = image.to(torch.device("cuda"))
     image = image.squeeze(0)
+    image = image.cpu()
     output = encoder(image)
     output = output.cpu().detach().numpy()
     output = np.squeeze(output)
     axs[1].imshow(output, cmap="gray")
     axs[1].set_title("Reconstructed Image")
-    plt.show()
+    diff = np.abs(image.cpu().detach().numpy() - output).squeeze(0)
+    print(f'Shape{diff.shape}')
+    axs[2].imshow(diff, cmap='gray')
+    axs[2].set_title('Difference')
+    print('saving image')
+    plt.savefig(dest_dir)
+    print('Done saving image')
     return

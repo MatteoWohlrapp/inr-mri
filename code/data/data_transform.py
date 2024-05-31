@@ -7,9 +7,9 @@ from fastmri.data import transforms as T
 from fastmri.data.subsample import RandomMaskFunc
 import matplotlib.pyplot as plt
 
-SRC_ROOT = pathlib.Path("../../../../dataset/fastmri/brain/singlecoil_train")
+SRC_ROOT = pathlib.Path("../../../dataset/fastmri/brain/singlecoil_val")
 DEST_ROOT = pathlib.Path(
-    "../../../../dataset/fastmri/brain/singlecoil_train_normalized"
+    "../../../dataset/fastmri/brain/singlecoil_val_normalized"
 )
 
 
@@ -43,7 +43,9 @@ def normalize_scan(scan: torch.Tensor):
 def process_files():
     print("Processing files ...")
     path = SRC_ROOT
+    print(path)
     for file in path.glob("**/*.h5"):
+        print(1)
         print(file)
         fully_sampled_scan = load_mri_scan(file)
         fully_sampled_normalized_scan = normalize_scan(fully_sampled_scan)
@@ -58,6 +60,3 @@ def process_files():
         with h5py.File(dest_path, "w") as f:
             f.create_dataset("fully_sampled", data=fully_sampled_normalize_scan)
             f.create_dataset("undersampled", data=undersampled_normalize_scan)
-
-
-process_files()

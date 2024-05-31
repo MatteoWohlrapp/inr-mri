@@ -13,7 +13,8 @@ def extract_patches(tensor, patch_size):
     Returns:
         torch.Tensor: Extracted patches of shape (batch_size, num_patches, patch_size, patch_size).
     """
-    tensor = tensor.unsqueeze(1)
+    if len(tensor.shape) == 3:
+        tensor = tensor.unsqueeze(1)
     batch_size, channels, height, width = tensor.shape
     # Ensure that the tensor is a 4D tensor with only one channel (grayscale)
     assert channels == 1, "Input tensor must have only one channel (grayscale images)."
