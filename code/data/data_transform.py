@@ -8,9 +8,9 @@ from fastmri.data.subsample import RandomMaskFunc
 import matplotlib.pyplot as plt
 
 SRC_ROOT = pathlib.Path("../../../dataset/fastmri/brain/singlecoil_val")
-DEST_ROOT = pathlib.Path(
-    "../../../dataset/fastmri/brain/singlecoil_val_normalized"
-)
+DEST_ROOT = pathlib.Path("../../../dataset/fastmri/brain/singlecoil_val_normalized")
+#SRC_ROOT = pathlib.Path(r"C:\Users\jan\Documents\python_files\adlm\data\brain\singlecoil_val")
+#DEST_ROOT = pathlib.Path(r"C:\Users\jan\Documents\python_files\adlm\data\brain\singlecoil_val_normalized")
 
 
 def load_h5(path):

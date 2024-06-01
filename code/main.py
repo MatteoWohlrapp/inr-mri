@@ -16,7 +16,7 @@ from networks.encoder.encoder import build_autoencoder, load_model
 def main():
 
     args = parse_cmd_args()
-    return
+
     if args.mode == "test":
         test(args)
     else:
@@ -48,4 +48,4 @@ def plot_examples():
 
 # #SBATCH --partition=course
 if __name__ == "__main__":
-    main_encoder()
+    main()

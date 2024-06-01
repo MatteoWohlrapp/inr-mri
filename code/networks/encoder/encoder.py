@@ -236,12 +236,13 @@ class Trainer:
         self.save_model()
         self.writer.close()
 
-class Encoder(nn.Module):
+class CustomEncoder(nn.Module):
     """Encoder model extracted from the autoencoder model"""
     def __init__(self, autoencoder_path):
-        super(Encoder, self).__init__()
+        super(CustomEncoder, self).__init__()
         autoencoder = load_model(autoencoder_path)
         self.encoder = autoencoder.encoder
+        self.latent_dim = autoencoder.latent_dim
 
     def forward(self, x):
         x = extract_patches(x, window_size)

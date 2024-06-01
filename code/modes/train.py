@@ -4,7 +4,7 @@ from data.mri_dataset import (
     MRIDatasetTransformed,
     MRIDatasetTransformedInMemory,
 )
-from networks.networks import ModulatedSiren
+from networks.networks import ModulatedSiren, ModulatedSirenTiling
 from trainer.trainer import Trainer
 from data.transformations import scale_mri_tensor_advanced
 import torch.optim as optim
@@ -49,7 +49,7 @@ def train(args):
     )
 
     # Initialize the model
-    model = ModulatedSiren(
+    model = ModulatedSirenTiling(
         image_width=args.image_width,
         image_height=args.image_height,
         dim_in=args.dim_in,

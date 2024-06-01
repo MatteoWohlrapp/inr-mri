@@ -7,6 +7,8 @@ from torchvision import models
 from torchvision.models import resnet18, ResNet18_Weights
 from networks.autoencoder.autoencoder import VGGAutoEncoder, get_configs
 from utils.checkpoint import load_dict
+from networks.encoder.encoder import CustomEncoder
+import pathlib
 
 
 def cast_tuple(val, repeat=1):
@@ -99,6 +101,8 @@ class SirenNet(nn.Module):
         mods = cast_tuple(mods, self.num_layers)
 
         for layer, mod in zip(self.layers, mods):
+            print(f'X shape: {x.shape}')
+            print(f'Mod shape: {mod.shape}')
             x = layer(x)
 
             if mod is not None:
@@ -153,6 +157,10 @@ class Encoder(nn.Module):
             self.adaptive_pool = nn.AdaptiveAvgPool2d((7, 7))
             self.fc = nn.Linear(num_features, latent_dim)
 
+        elif encoder_type == 'custom':
+            self.encoder = self.load_custom_encoder()
+            self.fc = nn.Identity()
+
     def load_pretrained_resnet(self, feature_extract=True, use_pretrained=True):
         # Load a pretrained ResNet model
         model = models.resnet18(weights=ResNet18_Weights.DEFAULT)
@@ -175,6 +183,10 @@ class Encoder(nn.Module):
         num_features = 512 * 7 * 7
 
         return model.encoder, num_features
+    
+    def load_custom_encoder(self):
+        model = CustomEncoder(pathlib.Path(r'C:\Users\jan\Documents\python_files\adlm\copy\models\20240530-170738_autoencoder_v1_256_2.pth'))
+        return model
 
     def forward(self, x):
         x = x.unsqueeze(1)
@@ -252,6 +264,107 @@ class ModulatedSiren(nn.Module):
         )
 
         coords = self.grid.clone().detach().repeat(batch_size, 1, 1).requires_grad_()
+
+        out = self.net(coords, mods)
+        out = rearrange(
+            out, "b (h w) c -> () b c h w", h=self.image_height, w=self.image_width
+        )
+        out = out.squeeze(0).squeeze(1)
+        return out
+
+    def upscale(self, scale_factor, img=None):
+        mods = (
+            self.modulator(self.encoder(img))
+            if self.modulate and img is not None
+            else None
+        )
+
+        tensors = [
+            torch.linspace(-1, 1, steps=self.image_height * scale_factor),
+            torch.linspace(-1, 1, steps=self.image_width * scale_factor),
+        ]
+        mgrid = torch.stack(torch.meshgrid(*tensors, indexing="ij"), dim=-1)
+        coords = rearrange(mgrid, "h w b -> (h w) b")
+
+        out = self.net(coords, mods)
+        out = rearrange(
+            out,
+            "(h w) c -> () c h w",
+            h=self.image_height * scale_factor,
+            w=self.image_width * scale_factor,
+        )
+        out = out.squeeze(0)
+        return out
+
+# complete network
+class ModulatedSirenTiling(nn.Module):
+    def __init__(
+        self,
+        image_width,
+        image_height,
+        dim_in,
+        dim_hidden,
+        dim_out,
+        num_layers,
+        latent_dim,
+        w0,
+        w0_initial,
+        use_bias,
+        dropout,
+        modulate,
+        encoder_type
+    ):
+        super().__init__()
+
+        self.image_width = image_width
+        self.image_height = image_height
+        self.dim_hidden = dim_hidden
+        self.dim_out = dim_out
+        self.num_layers = num_layers
+        self.latent_dim = latent_dim
+        self.modulate = modulate
+        self.encoder_type = encoder_type
+        self.tile_size = 32 # hard coded for now
+
+        self.net = SirenNet(
+            dim_in=dim_in,
+            dim_hidden=dim_hidden,
+            dim_out=dim_out,
+            num_layers=num_layers,
+            w0=w0,
+            w0_initial=w0_initial,
+            use_bias=use_bias,
+            dropout=dropout,
+        )
+
+        self.modulator = Modulator(
+            dim_in=latent_dim, dim_hidden=dim_hidden, num_layers=num_layers
+        )
+
+        self.encoder = Encoder(latent_dim=latent_dim, encoder_type=encoder_type)
+
+        tensors = [
+            torch.linspace(-1, 1, steps=self.tile_size),
+            torch.linspace(-1, 1, steps=self.tile_size),
+        ]
+        mgrid = torch.stack(torch.meshgrid(*tensors, indexing="ij"), dim=-1)
+        mgrid = rearrange(mgrid, "h w b -> (h w) b")
+        print(mgrid.shape)
+        self.register_buffer("grid", mgrid)
+
+    def forward(self, img=None):
+        batch_size = img.shape[0] if img is not None else 1 
+        print(f'Image shape: {img.shape}')
+        mods = (
+            self.modulator(self.encoder(img))
+            if self.modulate and img is not None
+            else None
+        )
+        print(123)
+        coords = self.grid.clone().detach().repeat(mods[0].shape[0], 1, 1).requires_grad_()
+        print(f'mods shape: {mods[0].shape}')
+        print(f'grid shape: {self.grid.shape}')
+        print(f'coords shape: {coords.shape}')
 
         out = self.net(coords, mods)
         out = rearrange(
