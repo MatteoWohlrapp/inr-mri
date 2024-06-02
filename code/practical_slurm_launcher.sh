@@ -17,6 +17,6 @@
 conda deactivate
 conda activate jrdev
 
-cd "/vol/aimspace/projects/practical_SoSe24/mri_inr/jrdev/mri-inr/code"
+cd "/vol/aimspace/projects/practical_SoSe24/mri_inr/rogalka/mri-inr/code"
 
 python3 main.py -c "./configuration/train.yml"

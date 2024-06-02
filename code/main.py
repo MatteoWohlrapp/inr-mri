@@ -37,9 +37,9 @@ def plot_examples():
     r"/vol/aimspace/projects/practical_SoSe24/mri_inr/dataset/fastmri/brain/singlecoil_val_normalized"
     )
     dataset = MRIDatasetTransformed(path_val, number_of_samples = 200, shuffle = True)
-    model_path = pathlib.Path(r'/vol/aimspace/projects/practical_SoSe24/mri_inr/jrdev/models/20240530-170738_autoencoder_v1_256.pth')
+    model_path = pathlib.Path(r'/vol/aimspace/projects/practical_SoSe24/mri_inr/rogalka/mri-inr/models/20240530-170738_autoencoder_v1_256.pth')
     autoencoder = load_model(model_path)
-    dest_dir_folder = pathlib.Path(r'/vol/aimspace/projects/practical_SoSe24/mri_inr/jrdev/models/plots') / model_path.stem
+    dest_dir_folder = pathlib.Path(r'/vol/aimspace/projects/practical_SoSe24/mri_inr/rogalka/mri-inr/models/plots') / model_path.stem
     dest_dir_folder.mkdir()
     for i in range(n_plots):
         plot_encoder_output(autoencoder,dataset[i], dest_dir_folder / f'{pathlib.Path(dataset.samples[i][0]).stem}.png', str(pathlib.Path(dataset.samples[i][0]).stem))
@@ -48,4 +48,6 @@ def plot_examples():
 
 # #SBATCH --partition=course
 if __name__ == "__main__":
+    print('Start')
     main()
+    print(('End'))

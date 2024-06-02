@@ -101,8 +101,6 @@ class SirenNet(nn.Module):
         mods = cast_tuple(mods, self.num_layers)
 
         for layer, mod in zip(self.layers, mods):
-            print(f'X shape: {x.shape}')
-            print(f'Mod shape: {mod.shape}')
             x = layer(x)
 
             if mod is not None:
@@ -185,7 +183,7 @@ class Encoder(nn.Module):
         return model.encoder, num_features
     
     def load_custom_encoder(self):
-        model = CustomEncoder(pathlib.Path(r'C:\Users\jan\Documents\python_files\adlm\copy\models\20240530-170738_autoencoder_v1_256_2.pth'))
+        model = CustomEncoder(pathlib.Path(r'/vol/aimspace/projects/practical_SoSe24/mri_inr/rogalka/mri-inr/models/20240530-170738_autoencoder_v1_256_2.pth'))
         return model
 
     def forward(self, x):
@@ -353,23 +351,31 @@ class ModulatedSirenTiling(nn.Module):
         self.register_buffer("grid", mgrid)
 
     def forward(self, img=None):
-        batch_size = img.shape[0] if img is not None else 1 
-        print(f'Image shape: {img.shape}')
+        batch_size = img.shape[0] if img is not None else 1
         mods = (
             self.modulator(self.encoder(img))
             if self.modulate and img is not None
             else None
         )
-        print(123)
         coords = self.grid.clone().detach().repeat(mods[0].shape[0], 1, 1).requires_grad_()
-        print(f'mods shape: {mods[0].shape}')
-        print(f'grid shape: {self.grid.shape}')
-        print(f'coords shape: {coords.shape}')
 
         out = self.net(coords, mods)
-        out = rearrange(
+        """out = rearrange(
             out, "b (h w) c -> () b c h w", h=self.image_height, w=self.image_width
-        )
+        )"""
+        # Assuming out is a tensor of shape (b, h*w, c)
+        b, _, c = out.shape
+        h = self.image_height
+        w = self.image_width
+
+        # Reshape the tensor to the desired shape
+        out = out.view(-1, h, w, c)
+
+        # Permute the dimensions to match the desired output
+        out = out.permute(0, 3, 1, 2)
+
+        # Add an extra dimension at the beginning
+        out = out.unsqueeze(0)
         out = out.squeeze(0).squeeze(1)
         return out
 

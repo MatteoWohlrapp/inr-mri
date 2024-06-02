@@ -1,6 +1,6 @@
 path_train_dataset: /vol/aimspace/projects/practical_SoSe24/mri_inr/dataset/fastmri/brain/singlecoil_train_normalized
 path_val_dataset: /vol/aimspace/projects/practical_SoSe24/mri_inr/dataset/fastmri/brain/singlecoil_val_normalized
-path_model: /vol/aimspace/projects/practical_SoSe24/mri_inr/jrdev/models/20240530-170738_autoencoder_v1_256.pth
+path_model: /vol/aimspace/projects/practical_SoSe24/mri_inr/rogalka/mri-inr/models/20240530-170738_autoencoder_v1_256.pth
 
 epochs: 1000
 batch_size: 100
