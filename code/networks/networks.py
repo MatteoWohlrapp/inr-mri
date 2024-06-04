@@ -8,6 +8,7 @@ from torchvision.models import resnet18, ResNet18_Weights
 from networks.autoencoder.autoencoder import VGGAutoEncoder, get_configs
 from utils.checkpoint import load_dict
 from networks.encoder.encoder import CustomEncoder
+from networks.encoder.util import reconstruct_image
 import pathlib
 
 
@@ -183,7 +184,7 @@ class Encoder(nn.Module):
         return model.encoder, num_features
     
     def load_custom_encoder(self):
-        model = CustomEncoder(pathlib.Path(r'/vol/aimspace/projects/practical_SoSe24/mri_inr/rogalka/mri-inr/models/20240530-170738_autoencoder_v1_256_2.pth'))
+        model = CustomEncoder(pathlib.Path(r'/Users/matteowohlrapp/Documents/Uni/Master/SoSe_24_L/ADLM/code/mri-inr/output/model_checkpoints//20240530-170738_autoencoder_v1_256_2.pth'))
         return model
 
     def forward(self, x):
@@ -363,21 +364,14 @@ class ModulatedSirenTiling(nn.Module):
         """out = rearrange(
             out, "b (h w) c -> () b c h w", h=self.image_height, w=self.image_width
         )"""
-        # Assuming out is a tensor of shape (b, h*w, c)
-        b, _, c = out.shape
-        h = self.image_height
-        w = self.image_width
 
-        # Reshape the tensor to the desired shape
-        out = out.view(-1, h, w, c)
+        out_reshaped = rearrange(
+            out, "p (h w) b -> () b p h w", h=32, w=32
+        )
+        out_reshaped = out_reshaped.squeeze(0)
+        out_reconstruct = reconstruct_image(out_reshaped, self.image_height, self.image_width, self.tile_size)
 
-        # Permute the dimensions to match the desired output
-        out = out.permute(0, 3, 1, 2)
-
-        # Add an extra dimension at the beginning
-        out = out.unsqueeze(0)
-        out = out.squeeze(0).squeeze(1)
-        return out
+        return out_reconstruct
 
     def upscale(self, scale_factor, img=None):
         mods = (
