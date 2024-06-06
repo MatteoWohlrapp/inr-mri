@@ -1,6 +1,6 @@
 # Set the mode and name 
 mode: "test"
-name: "vgg_encoder_10_samples"
+name: "custom_encoder_horizontal_stripes"
 
 # Configuration for Datatset
 test_dataset: '../../../dataset/fastmri/brain/singlecoil_train_normalized'
@@ -20,8 +20,8 @@ dropout: 0.1
 image_width: 320
 image_height: 640
 modulate: True
-encoder_type: "autoencoder"
+encoder_type: "custom"
 
 # Configuration for Testing
-model_path: '../output/model_checkpoints/2024-05-29_21-11-08_vgg_encoder_model.pth'
-test_files: ['file_brain_AXFLAIR_200_6002467.h5'] # only specify when you want to compare a specific file
+model_path: '../output/model_checkpoints/2024-06-04_08-57-51_horizontal-stripes_model.pth'
+test_files: ['file_brain_AXFLAIR_200_6002467.h5']

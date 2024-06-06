@@ -68,10 +68,10 @@ class MRIRandomSampler:
         return image_abs
 
 class MRIRandomSamplerTransformed:
-    def __init__(
-        self, path, seed=42, filter_func=None, transform=None, test_files=None
-    ):
+    def __init__(self, path, target_height, target_width, seed=42, filter_func=None, transform=None, test_files=None):
         self.path = path
+        self.target_height = target_height
+        self.target_width = target_width
         self.transform = transform
         random.seed(seed)  # Seed for reproducibility
         self.files = (
@@ -91,30 +91,32 @@ class MRIRandomSamplerTransformed:
             self.available_slices[file_path] = list(range(num_slices))
 
     def get_random_sample(self):
-        if not any(self.available_slices.values()):
-            raise ValueError("No slices available to sample from.")
+        while True:
+            if not any(self.available_slices.values()):
+                raise ValueError("No slices available to sample from.")
 
-        available_files = [f for f in self.available_slices if self.available_slices[f]]
-        file_path = random.choice(available_files)
+            available_files = [f for f in self.available_slices if self.available_slices[f]]
+            file_path = random.choice(available_files)
 
-        slice_idx = random.choice(self.available_slices[file_path])
-        self.available_slices[file_path].remove(slice_idx)
+            slice_idx = random.choice(self.available_slices[file_path])
+            self.available_slices[file_path].remove(slice_idx)
 
-        with h5py.File(file_path, "r") as hf:
-            original_image = np.asarray(hf["fully_sampled"][slice_idx])
+            with h5py.File(file_path, "r") as hf:
+                original_image = np.asarray(hf["fully_sampled"][slice_idx])
+                undersampled_image = np.asarray(hf["undersampled"][slice_idx])
 
-        with h5py.File(file_path, "r") as hf:
-            undersampled_image = np.asarray(hf["undersampled"][slice_idx])
+            # Ensure images are converted to tensors
+            original_image = T.to_tensor(original_image).float()
+            undersampled_image = T.to_tensor(undersampled_image).float()
 
+            # Apply transformations if specified
+            if self.transform:
+                original_image = self.transform(original_image)
+                undersampled_image = self.transform(undersampled_image)
 
-        original_image = T.to_tensor(original_image).float()
-        undersampled_image = T.to_tensor(undersampled_image).float()
-
-        if self.transform:
-            original_image = self.transform(original_image)
-            undersampled_image = self.transform(undersampled_image)
-
-        filename = os.path.basename(file_path)
-        filename = os.path.splitext(filename)[0]
-
-        return original_image, undersampled_image, f"{filename}_slice{slice_idx}"
+            # Check if the images meet the required dimensions
+            print(original_image.shape, flush=True)
+            if original_image.shape[0] == self.target_height and original_image.shape[1] == self.target_width:
+                filename = os.path.basename(file_path)
+                filename = os.path.splitext(filename)[0]
+                return original_image, undersampled_image, f"{filename}_slice{slice_idx}"

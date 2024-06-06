@@ -184,7 +184,7 @@ class Encoder(nn.Module):
         return model.encoder, num_features
     
     def load_custom_encoder(self):
-        model = CustomEncoder(pathlib.Path(r'/Users/matteowohlrapp/Documents/Uni/Master/SoSe_24_L/ADLM/code/mri-inr/output/model_checkpoints//20240530-170738_autoencoder_v1_256_2.pth'))
+        model = CustomEncoder(pathlib.Path(r'../output/model_checkpoints/20240530-170738_autoencoder_v1_256_2.pth'))
         return model
 
     def forward(self, x):

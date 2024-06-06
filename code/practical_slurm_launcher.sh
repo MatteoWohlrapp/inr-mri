@@ -15,8 +15,8 @@
 
 # activate corresponding environment
 conda deactivate
-conda activate jrdev
+conda activate adlm
 
-cd "/vol/aimspace/projects/practical_SoSe24/mri_inr/rogalka/mri-inr/code"
+cd "/vol/aimspace/projects/practical_SoSe24/mri_inr/code/mri-inr/code"
 
-python3 main.py -c "./configuration/train.yml"
+python3 main.py -c "./configuration/test.yml"

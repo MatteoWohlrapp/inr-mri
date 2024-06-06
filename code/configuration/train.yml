@@ -1,12 +1,12 @@
 # Set the mode and name 
 mode: "train"
-name: "modulated_siren"
+name: "horizontal-stripes"
 
 # Configuration for Datatset
 #train_dataset: 'C:\Users\jan\Documents\python_files\adlm\data\brain\singlecoil_train_normalized'
 train_dataset: '../../../dataset/fastmri/brain/singlecoil_train_normalized'
 undersampled: true
-num_samples: 100
+num_samples: 10
 mri_type: "FLAIR"
 
 # Configuration for Network
@@ -25,6 +25,6 @@ modulate: True
 encoder_type: "custom"
 # Configuration for Trainer
 lr: 0.0001
-batch_size: 10
+batch_size: 1
 epochs: 10000
-limit_io: False
+limit_io: True

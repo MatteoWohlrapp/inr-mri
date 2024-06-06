@@ -1,7 +1,7 @@
 from data.transformations import scale_mri_tensor_advanced
 import torch
 from data.mri_sampler import MRIRandomSampler, MRIRandomSamplerTransformed
-from networks.networks import ModulatedSiren
+from networks.networks import ModulatedSiren, ModulatedSirenTiling
 from torchvision import transforms
 import os
 from utils.error import inference_error
@@ -37,9 +37,11 @@ def test(args):
         filter_func=(lambda x: args.mri_type in x),
         transform=transforms.Compose(transformations),
         test_files=args.test_files,
+        target_height = args.image_height, 
+        target_width = args.image_width
     )
 
-    model = ModulatedSiren(
+    model = ModulatedSirenTiling(
         image_width=args.image_width,
         image_height=args.image_height,
         dim_in=args.dim_in,
