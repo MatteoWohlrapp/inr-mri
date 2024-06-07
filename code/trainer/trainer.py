@@ -69,14 +69,16 @@ class Trainer:
             training_loss = 0
             max_train_iteration = 0
             max_val_iteration = 0
-            for train_iteration, img_batch in training_loop:
-                img_batch = img_batch.to(self.device)
+            for train_iteration, (undersampled_batch, fully_sampled_batch) in training_loop:
+                undersampled_batch = undersampled_batch.to(self.device)
+                fully_sampled_batch = fully_sampled_batch.to(self.device)
 
-                patches, _ = extract_with_inner_patches(img_batch, 32, 16)
+                undersampled_patches, _ = extract_with_inner_patches(undersampled_batch, 32, 16)
+                fully_sampled_patches, _ = extract_with_inner_patches(fully_sampled_batch, 32, 16)
 
                 self.optimizer.zero_grad()
-                outputs = self.model(patches)
-                loss = self.criterion(outputs, patches)
+                outputs = self.model(undersampled_patches)
+                loss = self.criterion(outputs, fully_sampled_patches)
                 loss.backward()
                 self.optimizer.step()
 

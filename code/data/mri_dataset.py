@@ -222,3 +222,66 @@ class MRIDatasetTransformedInMemory(Dataset):
 
     def __getitem__(self, idx):
         return self.data[idx]
+
+
+class MRIDatasetTransformedInMemoryBoth(Dataset):
+    def __init__(
+        self,
+        path: str,
+        filter_func: Optional[Callable] = None,
+        transform: Optional[Callable] = None,
+        number_of_samples=None,
+        image_width=320, 
+        image_height=640
+    ):
+        """
+        Args:
+            path: Path to the data files.
+            transform: Optional callable to apply to the data (e.g., normalization, augmentation).
+            number_of_samples: Limit the number of samples to load (useful for testing or restricted environments).
+            image_width: Expected width of the images.
+            image_height: Expected height of the images.
+        """
+        self.path = path
+        self.transform = transform
+        self.number_of_samples = number_of_samples
+        self.image_width = image_width
+        self.image_height = image_height
+        self.data = []
+
+        self._prepare_dataset(filter_func)
+
+    def _prepare_dataset(self, filter_func: Optional[Callable] = None):
+        """Prepare the dataset by loading all the data into memory."""
+        files = [
+            os.path.join(self.path, f)
+            for f in os.listdir(self.path)
+            if f.endswith(".h5")
+        ]
+        count = 0
+        for file_path in files:
+            if filter_func and not filter_func(file_path):
+                continue
+
+            with h5py.File(file_path, "r") as hf:
+                num_slices = hf['undersampled'].shape[0]
+                if hf['undersampled'].shape[1] == self.image_height and hf['undersampled'].shape[2] == self.image_width:
+                    print("Reading file: ", file_path)
+                    for s in range(num_slices):
+                        image_us = np.asarray(hf['undersampled'][s])
+                        image_fs = np.asarray(hf['fully_sampled'][s])
+                        image_tensor_us = T.to_tensor(image_us).float()
+                        image_tensor_fs = T.to_tensor(image_fs).float()
+                        if self.transform:
+                            image_tensor_us = self.transform(image_tensor_us)
+                            image_tensor_fs = self.transform(image_tensor_fs)
+                        self.data.append((image_tensor_us, image_tensor_fs))
+                        if self.number_of_samples is not None and count >= self.number_of_samples:
+                            return
+                        count += 1
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        return self.data[idx]

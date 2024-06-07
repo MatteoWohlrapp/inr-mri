@@ -1,6 +1,6 @@
 # Set the mode and name 
 mode: "train"
-name: "inner-outer-tiling-custom"
+name: "inner-outer-tiling-custom-mix"
 
 # Configuration for Datatset
 #train_dataset: 'C:\Users\jan\Documents\python_files\adlm\data\brain\singlecoil_train_normalized'

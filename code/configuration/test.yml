@@ -1,6 +1,6 @@
 # Set the mode and name 
 mode: "test"
-name: "inner-outer-tiling-custom"
+name: "inner-outer-tiling-custom-mix"
 
 # Configuration for Datatset
 test_dataset: '../../../dataset/fastmri/brain/singlecoil_train_normalized'
@@ -23,5 +23,5 @@ modulate: True
 encoder_type: "custom"
 
 # Configuration for Testing
-model_path: '../output/model_checkpoints/2024-06-07_06-58-32_inner-outer-tiling_model.pth'
+model_path: '../output/model_checkpoints/2024-06-07_07-57-09_inner-outer-tiling-custom-mix_model.pth'
 test_files: ['file_brain_AXFLAIR_200_6002467.h5']

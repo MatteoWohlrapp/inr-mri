@@ -3,6 +3,7 @@ from data.mri_dataset import (
     MRIDataset,
     MRIDatasetTransformed,
     MRIDatasetTransformedInMemory,
+    MRIDatasetTransformedInMemoryBoth
 )
 from networks.networks import ModulatedSiren, ModulatedSirenTiling
 from trainer.trainer import Trainer
@@ -28,7 +29,7 @@ def train(args):
                 transformations.append(scale_mri_tensor_advanced)
 
     # Load dataset
-    train_dataset = MRIDatasetTransformedInMemory(
+    train_dataset = MRIDatasetTransformedInMemoryBoth(
         path=args.train_dataset,
         filter_func=(lambda x: args.mri_type in x),
         transform=transforms.Compose(transformations),
