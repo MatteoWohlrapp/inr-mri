@@ -1,6 +1,6 @@
 # Set the mode and name 
 mode: "test"
-name: "custom_encoder_horizontal_stripes"
+name: "inner-outer-tiling-custom"
 
 # Configuration for Datatset
 test_dataset: '../../../dataset/fastmri/brain/singlecoil_train_normalized'
@@ -23,5 +23,5 @@ modulate: True
 encoder_type: "custom"
 
 # Configuration for Testing
-model_path: '../output/model_checkpoints/2024-06-04_08-57-51_horizontal-stripes_model.pth'
+model_path: '../output/model_checkpoints/2024-06-07_06-58-32_inner-outer-tiling_model.pth'
 test_files: ['file_brain_AXFLAIR_200_6002467.h5']

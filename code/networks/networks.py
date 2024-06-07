@@ -246,14 +246,15 @@ class ModulatedSiren(nn.Module):
         self.encoder = Encoder(latent_dim=latent_dim, encoder_type=encoder_type)
 
         tensors = [
-            torch.linspace(-1, 1, steps=image_height),
-            torch.linspace(-1, 1, steps=image_width),
+            torch.linspace(-1, 1, steps=32),
+            torch.linspace(-1, 1, steps=32),
         ]
         mgrid = torch.stack(torch.meshgrid(*tensors, indexing="ij"), dim=-1)
         mgrid = rearrange(mgrid, "h w b -> (h w) b")
         self.register_buffer("grid", mgrid)
 
     def forward(self, img=None):
+
         batch_size = img.shape[0] if img is not None else 1
 
         mods = (
@@ -265,10 +266,12 @@ class ModulatedSiren(nn.Module):
         coords = self.grid.clone().detach().repeat(batch_size, 1, 1).requires_grad_()
 
         out = self.net(coords, mods)
+        out = out.squeeze(2)
         out = rearrange(
-            out, "b (h w) c -> () b c h w", h=self.image_height, w=self.image_width
+            out, "b (h w)-> () b h w", h=32, w=32
         )
-        out = out.squeeze(0).squeeze(1)
+        out = out.squeeze(0)
+
         return out
 
     def upscale(self, scale_factor, img=None):
@@ -348,7 +351,6 @@ class ModulatedSirenTiling(nn.Module):
         ]
         mgrid = torch.stack(torch.meshgrid(*tensors, indexing="ij"), dim=-1)
         mgrid = rearrange(mgrid, "h w b -> (h w) b")
-        print(mgrid.shape)
         self.register_buffer("grid", mgrid)
 
     def forward(self, img=None):

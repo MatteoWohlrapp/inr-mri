@@ -48,6 +48,4 @@ def plot_examples():
 
 # #SBATCH --partition=course
 if __name__ == "__main__":
-    print('Start')
     main()
-    print(('End'))

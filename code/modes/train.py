@@ -49,7 +49,7 @@ def train(args):
     )
 
     # Initialize the model
-    model = ModulatedSirenTiling(
+    model = ModulatedSiren(
         image_width=args.image_width,
         image_height=args.image_height,
         dim_in=args.dim_in,

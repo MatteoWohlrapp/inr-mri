@@ -7,6 +7,8 @@ from tqdm import tqdm
 from utils.visualization import show_batch, show_image
 import sys
 import os
+from utils.tiling import extract_with_inner_patches, reconstruct_image_from_inner_patches
+import matplotlib.pyplot as plt
 
 
 def create_tqdm_bar(iterable, desc, limit_io=False):
@@ -69,9 +71,12 @@ class Trainer:
             max_val_iteration = 0
             for train_iteration, img_batch in training_loop:
                 img_batch = img_batch.to(self.device)
+
+                patches, _ = extract_with_inner_patches(img_batch, 32, 16)
+
                 self.optimizer.zero_grad()
-                outputs = self.model(img_batch)
-                loss = self.criterion(outputs, img_batch)
+                outputs = self.model(patches)
+                loss = self.criterion(outputs, patches)
                 loss.backward()
                 self.optimizer.step()
 
