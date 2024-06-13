@@ -1,9 +1,6 @@
-from torch.utils.data import DataLoader
-from dataset import MRIDataset
-import matplotlib.pyplot as plt 
-
 import torch 
 import torch.nn as nn
+from torch.nn import functional as F
 from torchtyping import TensorType
 
 class tiles(): 
@@ -33,27 +30,13 @@ class tiles():
     
     def recreate_image(self, patches: TensorType[torch.float32, "b", "#h", "#w", "k_h", "k_w"]) -> TensorType[torch.float32, "b", "n_h", "n_w"]: 
         
-        fold = nn.Fold(output_size=(self.n_h, self.n_w), kernel_size=(self.k_h, self.k_w), stride=(self.s_h, self.s_w)) 
+        fold = nn.Fold(output_size=(self.n_h, self.n_w), kernel_size=(self.k_h, self.k_w), stride=(self.s_h, self.s_w))
+        print(patches.shape) 
         patches = patches.contiguous().reshape(self.b, -1, self.k_h*self.k_w)
         patches = patches.permute(0, 2, 1)  
         patches = patches.contiguous().reshape(self.b, self.k_h*self.k_w, -1)
         reconstructed_sample = fold(patches).squeeze()
-        
-        return reconstructed_sample
+        counter = fold(torch.ones_like(patches)).squeeze().squeeze() # For possibly necessary normalization
 
-
-train_dataset = MRIDataset(
-    path='../dataset/brain/singlecoil_train', filter_func=(lambda x: 'FLAIR' in x), undersampled=False, number_of_samples = 10
-)
-
-train_loader = DataLoader(dataset=train_dataset, batch_size=4)
-patch = next(iter(train_loader))
-tiles = tiles()
-
-patches = tiles.create_tiles(patch=patch)
-reconstructed = tiles.recreate_image(patches=patches)
-
-# plt.imshow(patches[0, 0, 0, :, :])
-# print(patches.shape)
-# plt.imshow(reconstructed[0])
-plt.show()
+        return reconstructed_sample, counter
+    

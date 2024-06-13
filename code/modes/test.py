@@ -4,7 +4,7 @@ from data.mri_sampler import MRIRandomSampler, MRIRandomSamplerTransformed
 from networks.networks import ModulatedSiren, ModulatedSirenTiling
 from torchvision import transforms
 import os
-from utils.error import inference_error
+from utils.error import inference_error, inference_error_overlapping
 from utils.tiling import extract_with_inner_patches, reconstruct_image_from_inner_patches
 import matplotlib.pyplot as plt
 
@@ -69,17 +69,19 @@ def test(args):
             fully_sampled_img, undersampled_img, filename = sampler.get_random_sample()
 
              # unsqueeze image to add batch dimension
-            fully_sampled_img = fully_sampled_img.unsqueeze(0)
-            undersampled_img = undersampled_img.unsqueeze(0)
-
+            fully_sampled_img = fully_sampled_img.unsqueeze(0) # -> [1, 640, 320]
+            undersampled_img = undersampled_img.unsqueeze(0) # -> [1, 640, 320]
+            
+            """
             fully_sampled_patch, fully_sampled_inormation = extract_with_inner_patches(fully_sampled_img, 32, 16)
             undersampled_patch, undersampled_information = extract_with_inner_patches(undersampled_img, 32, 16)
-
+            """
+            
             output_dir_temp = os.path.join(output_dir, filename)
             if not os.path.exists(output_dir_temp):
                 os.makedirs(output_dir_temp)
 
-            inference_error(
+            """         inference_error(
                 model=model,
                 model_path=args.model_path,
                 output_dir=output_dir_temp,
@@ -95,4 +97,21 @@ def test(args):
                 filename=f"{filename}_undersampled",
                 img=undersampled_patch,
                 img_information=undersampled_information
+            )
+            """
+            
+            inference_error_overlapping(
+                model=model,
+                model_path=args.model_path,
+                output_dir=output_dir_temp,
+                filename=f"{filename}_fully_sampled",
+                img=fully_sampled_img,
+            )
+
+            inference_error_overlapping(
+                model=model,
+                model_path=args.model_path,
+                output_dir=output_dir_temp,
+                filename=f"{filename}_undersampled",
+                img=undersampled_img,
             )
