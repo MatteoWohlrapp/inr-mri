@@ -5,7 +5,7 @@ from skimage.metrics import normalized_root_mse as nrmse
 from utils.visualization import save_image
 import os
 from utils.tiling import extract_with_inner_patches, reconstruct_image_from_inner_patches
-from utils.overlapping_tiling import tiles
+from utils.overlapping_tiling import create_tiles, recreate_image
 
 
 def calculate_data_range(original, predicted):
@@ -90,10 +90,8 @@ def inference_error(model, model_path, output_dir, filename, img, img_informatio
         f.write(f"NRMSE: {nrmse_value}\n")
         
 def inference_error_overlapping(model, model_path, output_dir, filename, img):
-    tiles = tiles()
-    patches = tiles.create_tiles(img)
+    b, n_h, n_w, k_h, k_w, s_h, s_w, patches = create_tiles(img, k_h=32, k_w=32, s_h=16, s_w=16)
     patches_shape = list(patches.shape)
-
     patches = patches.reshape((patches_shape[0]*patches_shape[1]*patches_shape[2], 
                                                            patches_shape[3], patches_shape[4])) # -> [patches, k_h, k_w]
     patches_model = model(patches)
@@ -103,16 +101,25 @@ def inference_error_overlapping(model, model_path, output_dir, filename, img):
     
     patches_model = patches_model.reshape((patches_shape[0], patches_shape[1], patches_shape[2], 
                                            patches_shape[3], patches_shape[4])) # -> [batch, #h, #w, k_h, k_w]
-    reconstructed_image, counter = tiles.recreate_image(patches_model)
+    reconstructed_image, counter = recreate_image(b, n_h, n_w, k_h, k_w, s_h, s_w, patches_model)
+    reconstruct_image_normalized = reconstructed_image/counter
 
     save_image(reconstructed_image, f"{filename}_reconstructed", output_dir)
-    save_image(reconstructed_image/counter, f"{filename}_reconstructed_normalized", output_dir)
+    save_image(reconstruct_image_normalized, f"{filename}_reconstructed_normalized", output_dir)
     save_image(img.squeeze(), f"{filename}_gt", output_dir)
     save_image(
         calculate_difference(
             img.squeeze().numpy(), reconstructed_image.numpy()
         ),
         f"{filename}_difference",
+        output_dir,
+        cmap="viridis",
+    )
+    save_image(
+        calculate_difference(
+            img.squeeze().numpy(), reconstruct_image_normalized.numpy()
+        ),
+        f"{filename}_difference_normalized",
         output_dir,
         cmap="viridis",
     )
@@ -127,9 +134,21 @@ def inference_error_overlapping(model, model_path, output_dir, filename, img):
     nrmse_value = calculate_nrmse(
         img.squeeze().numpy(), reconstructed_image.numpy()
     )
+    psnr_value_normalized = calculate_psnr(
+        img.squeeze().numpy(), reconstruct_image_normalized.numpy()
+    )
+    ssim_value_normalized = calculate_ssim(
+        img.squeeze().numpy(), reconstruct_image_normalized.numpy()
+    )
+    nrmse_value_normalized = calculate_nrmse(
+        img.squeeze().numpy(), reconstruct_image_normalized.numpy()
+    )
 
     # Write them to a file
     with open(os.path.join(output_dir, f"{filename}_error.txt"), "w") as f:
         f.write(f"PSNR: {psnr_value}\n")
         f.write(f"SSIM: {ssim_value}\n")
         f.write(f"NRMSE: {nrmse_value}\n")
+        f.write(f"PSNR_normalized: {psnr_value_normalized}\n")
+        f.write(f"SSIM_normalized: {ssim_value_normalized}\n")
+        f.write(f"NRMSE_normalized: {nrmse_value_normalized}\n")

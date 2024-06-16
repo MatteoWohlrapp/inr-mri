@@ -15,8 +15,8 @@
 
 # activate corresponding environment
 conda deactivate
-conda activate adlm
+conda activate andreas_mri
 
-cd "/vol/aimspace/projects/practical_SoSe24/mri_inr/code/mri-inr/code"
+cd "/vol/aimspace/projects/practical_SoSe24/mri_inr/ehrensberger/code"
 
 python3 main.py -c "./configuration/test.yml"

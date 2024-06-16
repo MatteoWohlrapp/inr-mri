@@ -23,5 +23,5 @@ modulate: True
 encoder_type: "custom"
 
 # Configuration for Testing
-model_path: '../output/model_checkpoints/2024-06-07_07-57-09_inner-outer-tiling-custom-mix_model.pth'
+model_path: '/vol/aimspace/projects/practical_SoSe24/mri_inr/code/mri-inr/output/model_checkpoints/2024-06-14_23-04-21_inner-outer-tiling-custom-mix-train-encoder/2024-06-14_23-04-21_inner-outer-tiling-custom-mix-train-encoder_model_final.pth'
 test_files: ['file_brain_AXFLAIR_200_6002467.h5']

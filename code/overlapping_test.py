@@ -5,7 +5,7 @@ from utils.overlapping_tiling import tiles
 import torch 
 
 train_dataset = MRIDataset(
-    path='C:/Users/amehr/Documents/Master/4. Semester/Applied Deep Learning/Project_Git_2/dataset/brain/singlecoil_train', filter_func=(lambda x: 'FLAIR' in x), undersampled=False, number_of_samples = 10
+    path="../../../dataset/fastmri/brain/singlecoil_train_normalized", filter_func=(lambda x: 'FLAIR' in x), undersampled=False, number_of_samples = 10
 )
 
 train_loader = DataLoader(dataset=train_dataset, batch_size=1)

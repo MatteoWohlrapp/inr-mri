@@ -177,16 +177,16 @@ class Encoder(nn.Module):
     def load_autoencoder(self):
         
         model = VGGAutoEncoder(get_configs("vgg16"))
-        load_dict("../output/model_checkpoints/imagenet-vgg16.pth", model)
+        load_dict("../../../../code/mri-inr/output/model_checkpoint/imagenet-vgg16.pth", model)
 
         num_features = 512 * 7 * 7
 
         return model.encoder, num_features
     
     def load_custom_encoder(self):
-        model = CustomEncoder(pathlib.Path(r'../output/model_checkpoints/20240530-170738_autoencoder_v1_256_2.pth'))
+        model = CustomEncoder(pathlib.Path(r'/vol/aimspace/projects/practical_SoSe24/mri_inr/code/mri-inr/output/model_checkpoints/20240530-170738_autoencoder_v1_256_2.pth'))
         return model
-
+    
     def forward(self, x):
         x = x.unsqueeze(1)
         with torch.no_grad():
